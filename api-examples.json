@@ -1,0 +1,106 @@
+{
+  "authentication_examples": {
+    "register": {
+      "endpoint": "POST /api/auth/register",
+      "request": {
+        "username": "johnfarmer",
+        "firstName": "John",
+        "lastName": "Doe",
+        "email": "john.doe@example.com",
+        "password": "password123",
+        "fullName": "John Doe",
+        "phoneNumber": "+254712345678",
+        "role": "FARMER"
+      },
+      "response": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "username": "johnfarmer",
+        "roles": ["FARMER"],
+        "email": "john.doe@example.com",
+        "message": "User registered successfully"
+      }
+    },
+    "login": {
+      "endpoint": "POST /api/auth/login",
+      "request": {
+        "username": "johnfarmer",
+        "password": "password123"
+      },
+      "response": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "username": "johnfarmer",
+        "roles": ["FARMER"],
+        "email": "john.doe@example.com",
+        "message": "Login successful"
+      }
+    }
+  },
+  "role_examples": {
+    "farmer": {
+      "username": "farmer123",
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "email": "jane.smith@example.com",
+      "password": "securepass123",
+      "fullName": "Jane Smith",
+      "phoneNumber": "+254798765432",
+      "role": "FARMER"
+    },
+    "buyer": {
+      "username": "buyer456",
+      "firstName": "Mike",
+      "lastName": "Johnson",
+      "email": "mike.johnson@example.com",
+      "password": "buyerpass123",
+      "fullName": "Mike Johnson",
+      "phoneNumber": "+254711223344",
+      "role": "BUYER"
+    },
+    "extension_officer": {
+      "username": "officer789",
+      "firstName": "Sarah",
+      "lastName": "Wilson",
+      "email": "sarah.wilson@example.com",
+      "password": "officerpass123",
+      "fullName": "Sarah Wilson",
+      "phoneNumber": "+254755667788",
+      "role": "EXTENSION_OFFICER"
+    },
+    "admin": {
+      "username": "admin001",
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@shambabora.com",
+      "password": "adminpass123",
+      "fullName": "Admin User",
+      "phoneNumber": "+254700000000",
+      "role": "ADMIN"
+    }
+  },
+  "curl_examples": {
+    "register_farmer": "curl -X POST http://localhost:8080/api/auth/register \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"username\": \"johnfarmer\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\",\n    \"fullName\": \"John Doe\",\n    \"phoneNumber\": \"+254712345678\",\n    \"role\": \"FARMER\"\n  }'",
+    "login": "curl -X POST http://localhost:8080/api/auth/login \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"username\": \"johnfarmer\",\n    \"password\": \"password123\"\n  }'"
+  },
+  "error_examples": {
+    "username_taken": {
+      "status": 400,
+      "message": "Username is already taken"
+    },
+    "email_in_use": {
+      "status": 400,
+      "message": "Email is already in use"
+    },
+    "invalid_credentials": {
+      "status": 401,
+      "message": "Invalid username or password"
+    },
+    "validation_error": {
+      "status": 400,
+      "message": "Validation failed",
+      "errors": {
+        "email": "must be a well-formed email address",
+        "password": "must be at least 6 characters long"
+      }
+    }
+  }
+} 

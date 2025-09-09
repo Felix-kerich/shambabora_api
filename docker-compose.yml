@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: shambabora-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: kerichfelix
+      MYSQL_DATABASE: shambabora
+      MYSQL_USER: shambabora
+      MYSQL_PASSWORD: shambabora123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - shambabora-network
+    command: --default-authentication-plugin=mysql_native_password
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: shambabora-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - shambabora-network
+
+volumes:
+  mysql_data:
+  rabbitmq_data:
+
+networks:
+  shambabora-network:
+    driver: bridge 
