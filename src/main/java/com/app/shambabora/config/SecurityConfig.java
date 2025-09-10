@@ -1,4 +1,4 @@
-package com.app.shambabora.config;
+ package com.app.shambabora.config;
 
 import com.app.shambabora.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -65,7 +65,7 @@ public class SecurityConfig {
                 "http://127.0.0.1:5173"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "x-user-id"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
 
