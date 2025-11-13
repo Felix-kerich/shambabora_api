@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface YieldRecordRepository extends JpaRepository<YieldRecord, Long> {
@@ -45,4 +46,9 @@ public interface YieldRecordRepository extends JpaRepository<YieldRecord, Long> 
     
     // Get yield records by farmer profile id, crop, and date range for trend analysis
     List<YieldRecord> findByFarmerProfileIdAndCropTypeAndHarvestDateBetweenOrderByHarvestDateAsc(Long farmerProfileId, String cropType, LocalDate startDate, LocalDate endDate);
+
+    Optional<YieldRecord> findTopByFarmerProfileIdOrderByHarvestDateDesc(Long farmerProfileId);
+
+    @Query("SELECT DISTINCT yr.cropType FROM YieldRecord yr WHERE yr.farmerProfileId = :farmerProfileId")
+    List<String> findDistinctCropTypesByFarmerProfileId(@Param("farmerProfileId") Long farmerProfileId);
 }

@@ -24,7 +24,9 @@ public class FarmerProfileController {
     public ResponseEntity<FarmerProfileResponse> getMyProfile(Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         Long userId = user.getId();
-        return ResponseEntity.ok(farmerProfileService.getProfile(userId));
+        return farmerProfileService.getProfileOptional(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @Operation(summary = "Update current user's farmer profile")
@@ -34,7 +36,15 @@ public class FarmerProfileController {
             @Valid @RequestBody FarmerProfileRequest request) {
         User user = (User) authentication.getPrincipal();
         Long userId = user.getId();
-        return ResponseEntity.ok(farmerProfileService.updateProfile(userId, request));
+        try {
+            return ResponseEntity.ok(farmerProfileService.updateProfile(userId, request));
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Farmer profile not found")) {
+                // If profile doesn't exist, create it
+                return ResponseEntity.ok(farmerProfileService.createProfile(userId, request));
+            }
+            throw e;
+        }
     }
 
     @Operation(summary = "Create farmer profile for current user")

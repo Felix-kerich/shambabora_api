@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface FarmExpenseRepository extends JpaRepository<FarmExpense, Long> {
@@ -48,4 +49,9 @@ public interface FarmExpenseRepository extends JpaRepository<FarmExpense, Long> 
     // Get expenses by growth stage for a farmer profile id and crop
     @Query("SELECT fe.growthStage, SUM(fe.amount) FROM FarmExpense fe WHERE fe.farmerProfileId = :farmerProfileId AND fe.cropType = :cropType GROUP BY fe.growthStage")
     List<Object[]> getExpensesByGrowthStageForFarmerProfileAndCrop(@Param("farmerProfileId") Long farmerProfileId, @Param("cropType") String cropType);
+
+    @Query("SELECT DISTINCT fe.cropType FROM FarmExpense fe WHERE fe.farmerProfileId = :farmerProfileId")
+    List<String> findDistinctCropTypesByFarmerProfileId(@Param("farmerProfileId") Long farmerProfileId);
+
+    Optional<FarmExpense> findTopByFarmerProfileIdOrderByExpenseDateDesc(Long farmerProfileId);
 }

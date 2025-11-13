@@ -28,10 +28,13 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     @Query("SELECT gm.groupId FROM GroupMembership gm WHERE gm.userId = :userId AND gm.status = :status")
     List<Long> findGroupIdsByUserIdAndStatus(@Param("userId") Long userId, @Param("status") GroupMembership.MembershipStatus status);
     
-    long countByGroupIdAndStatus(Long groupId, GroupMembership.MembershipStatus status);
     
     void deleteByGroupId(Long groupId);
     
     @Query("SELECT gm FROM GroupMembership gm WHERE gm.groupId = :groupId AND gm.role IN :roles")
     List<GroupMembership> findByGroupIdAndRoleIn(@Param("groupId") Long groupId, @Param("roles") List<GroupMembership.MembershipRole> roles);
+    
+    long countByUserIdAndStatusAndRole(Long userId, GroupMembership.MembershipStatus status, GroupMembership.MembershipRole role);
+    
+    long countByGroupIdAndStatus(Long groupId, GroupMembership.MembershipStatus status);
 }

@@ -19,4 +19,7 @@ public class GroupDTO {
     private Long ownerId;
     private List<Long> memberIds;
     private Instant createdAt;
+    private Long memberCount;
+    private Boolean isMember;
+    private String ownerName; // For display purposes
 } 

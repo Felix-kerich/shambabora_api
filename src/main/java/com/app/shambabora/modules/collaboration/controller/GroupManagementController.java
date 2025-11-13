@@ -84,4 +84,34 @@ public class GroupManagementController {
         log.info("Deleting group {} by user {}", groupId, requesterId);
         return ResponseEntity.ok(groupManagementService.deleteGroup(groupId, requesterId));
     }
+    
+    @GetMapping("/browse")
+    public ResponseEntity<ApiResponse<PageResponse<GroupDTO>>> browseGroups(
+            @RequestParam(required = false) String search,
+            @RequestHeader("X-User-Id") Long userId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        log.info("Browsing groups with search: {} by user {}", search, userId);
+        return ResponseEntity.ok(groupManagementService.browseGroups(search, userId, pageable));
+    }
+    
+    @PostMapping("/{groupId}/join")
+    public ResponseEntity<ApiResponse<GroupMembershipDTO>> joinGroup(@PathVariable Long groupId,
+                                                                    @RequestHeader("X-User-Id") Long userId) {
+        log.info("User {} joining group {}", userId, groupId);
+        return ResponseEntity.ok(groupManagementService.joinGroup(groupId, userId));
+    }
+    
+    @DeleteMapping("/{groupId}/leave")
+    public ResponseEntity<ApiResponse<String>> leaveGroup(@PathVariable Long groupId,
+                                                         @RequestHeader("X-User-Id") Long userId) {
+        log.info("User {} leaving group {}", userId, groupId);
+        return ResponseEntity.ok(groupManagementService.leaveGroup(groupId, userId));
+    }
+    
+    @GetMapping("/{groupId}")
+    public ResponseEntity<ApiResponse<GroupDTO>> getGroup(@PathVariable Long groupId,
+                                                         @RequestHeader("X-User-Id") Long userId) {
+        log.info("Getting group {} details for user {}", groupId, userId);
+        return ResponseEntity.ok(groupManagementService.getGroup(groupId, userId));
+    }
 }

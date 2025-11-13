@@ -89,4 +89,13 @@ public class PostController {
         log.info("Getting posts pending moderation");
         return ResponseEntity.ok(postService.getPostsPendingModeration(pageable));
     }
+
+    // New: Flag a post for admin review (does not hide it)
+    @PostMapping("/{postId}/flag")
+    public ResponseEntity<ApiResponse<Void>> flagPost(@PathVariable Long postId,
+                                                      @RequestParam(required = false) String reason,
+                                                      @RequestHeader("X-User-Id") Long userId) {
+        log.info("User {} flagging post {}. Reason: {}", userId, postId, reason);
+        return ResponseEntity.ok(postService.flagPost(postId, userId, reason));
+    }
 }

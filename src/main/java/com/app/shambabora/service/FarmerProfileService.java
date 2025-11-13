@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class FarmerProfileService {
@@ -20,6 +22,11 @@ public class FarmerProfileService {
         FarmerProfile profile = farmerProfileRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new RuntimeException("Farmer profile not found"));
         return toResponse(profile);
+    }
+    
+    public Optional<FarmerProfileResponse> getProfileOptional(Long userId) {
+        return farmerProfileRepository.findByUser_Id(userId)
+                .map(this::toResponse);
     }
 
     @Transactional

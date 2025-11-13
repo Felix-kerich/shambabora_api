@@ -70,8 +70,7 @@ public class PostService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
         
-        Page<Post> posts = postRepository.findByGroupIdInOrGroupIdIsNullAndStatus(
-                userGroupIds, Post.PostStatus.ACTIVE, sortedPageable);
+        Page<Post> posts = postRepository.findFeedAllVisible(userGroupIds, sortedPageable);
         
         List<PostDTO> postDTOs = posts.getContent().stream()
                 .map(post -> mapToDTO(post, userId))
@@ -97,8 +96,7 @@ public class PostService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
         
-        Page<Post> posts = postRepository.findByGroupIdAndStatusOrderByCreatedAtDesc(
-                groupId, Post.PostStatus.ACTIVE, sortedPageable);
+        Page<Post> posts = postRepository.findGroupAllVisible(groupId, sortedPageable);
         
         List<PostDTO> postDTOs = posts.getContent().stream()
                 .map(post -> mapToDTO(post, userId))
@@ -241,6 +239,15 @@ public class PostService {
                 .build();
         
         return ApiResponse.ok("Posts pending moderation retrieved successfully", pageResponse);
+    }
+
+    @Transactional
+    public ApiResponse<Void> flagPost(Long postId, Long userId, String reason) {
+        log.info("User {} flagged post {}. Reason: {}", userId, postId, reason);
+        // Ensure post exists
+        postRepository.findById(postId).orElseThrow(() -> new NotFoundException("Post not found"));
+        // Logged for admin review; implement notifications if needed
+        return ApiResponse.ok("Post flagged for review", null);
     }
     
     private PostDTO mapToDTO(Post post, Long currentUserId) {

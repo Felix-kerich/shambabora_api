@@ -32,6 +32,14 @@ public class GroupManagementService {
     public ApiResponse<GroupDTO> createGroup(GroupDTO groupDTO, Long ownerId) {
         log.info("Creating group: {} by user: {}", groupDTO.getName(), ownerId);
         
+        // Check if user already has 3 groups (max limit)
+        long userGroupCount = groupMembershipRepository.countByUserIdAndStatusAndRole(
+            ownerId, GroupMembership.MembershipStatus.ACTIVE, GroupMembership.MembershipRole.ADMIN);
+        
+        if (userGroupCount >= 3) {
+            throw new BadRequestException("Maximum of 3 groups allowed per user");
+        }
+        
         Group group = Group.builder()
                 .name(groupDTO.getName())
                 .description(groupDTO.getDescription())
@@ -197,6 +205,102 @@ public class GroupManagementService {
         log.info("Group {} deleted", groupId);
         
         return ApiResponse.ok("Group deleted successfully", "Success");
+    }
+    
+    public ApiResponse<PageResponse<GroupDTO>> browseGroups(String search, Long userId, Pageable pageable) {
+        log.info("Browsing groups with search: {} by user {}", search, userId);
+        
+        Page<Group> groupPage;
+        if (search != null && !search.trim().isEmpty()) {
+            groupPage = groupRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
+        } else {
+            groupPage = groupRepository.findAll(pageable);
+        }
+        
+        List<GroupDTO> groupDTOs = groupPage.getContent().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+        
+        PageResponse<GroupDTO> pageResponse = PageResponse.<GroupDTO>builder()
+                .content(groupDTOs)
+                .page(groupPage.getNumber())
+                .size(groupPage.getSize())
+                .totalElements(groupPage.getTotalElements())
+                .totalPages(groupPage.getTotalPages())
+                .build();
+        
+        return ApiResponse.ok("Groups retrieved successfully", pageResponse);
+    }
+    
+    @Transactional
+    public ApiResponse<GroupMembershipDTO> joinGroup(Long groupId, Long userId) {
+        log.info("User {} joining group {}", userId, groupId);
+        
+        // Check if group exists
+        groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found"));
+        
+        // Check if user is already a member
+        if (groupMembershipRepository.existsByGroupIdAndUserIdAndStatus(groupId, userId, GroupMembership.MembershipStatus.ACTIVE)) {
+            throw new BadRequestException("Already a member of this group");
+        }
+        
+        GroupMembership membership = GroupMembership.builder()
+                .groupId(groupId)
+                .userId(userId)
+                .role(GroupMembership.MembershipRole.MEMBER)
+                .status(GroupMembership.MembershipStatus.ACTIVE)
+                .build();
+        
+        GroupMembership savedMembership = groupMembershipRepository.save(membership);
+        log.info("User {} joined group {}", userId, groupId);
+        
+        return ApiResponse.ok("Successfully joined group", mapMembershipToDTO(savedMembership));
+    }
+    
+    @Transactional
+    public ApiResponse<String> leaveGroup(Long groupId, Long userId) {
+        log.info("User {} leaving group {}", userId, groupId);
+        
+        GroupMembership membership = groupMembershipRepository.findByGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new NotFoundException("Membership not found"));
+        
+        // Check if user is the owner
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found"));
+        
+        if (group.getOwnerId().equals(userId)) {
+            throw new BadRequestException("Group owner cannot leave the group. Transfer ownership or delete the group.");
+        }
+        
+        membership.setStatus(GroupMembership.MembershipStatus.LEFT);
+        groupMembershipRepository.save(membership);
+        log.info("User {} left group {}", userId, groupId);
+        
+        return ApiResponse.ok("Successfully left group", "Success");
+    }
+    
+    public ApiResponse<GroupDTO> getGroup(Long groupId, Long userId) {
+        log.info("Getting group {} details for user {}", groupId, userId);
+        
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found"));
+        
+        // Add member count and user's membership status
+        long memberCount = groupMembershipRepository.countByGroupIdAndStatus(groupId, GroupMembership.MembershipStatus.ACTIVE);
+        boolean isMember = groupMembershipRepository.existsByGroupIdAndUserIdAndStatus(groupId, userId, GroupMembership.MembershipStatus.ACTIVE);
+        
+        GroupDTO groupDTO = GroupDTO.builder()
+                .id(group.getId())
+                .name(group.getName())
+                .description(group.getDescription())
+                .ownerId(group.getOwnerId())
+                .createdAt(group.getCreatedAt())
+                .memberCount(memberCount)
+                .isMember(isMember)
+                .build();
+        
+        return ApiResponse.ok("Group details retrieved successfully", groupDTO);
     }
     
     private boolean hasAdminRole(Long groupId, Long userId) {
