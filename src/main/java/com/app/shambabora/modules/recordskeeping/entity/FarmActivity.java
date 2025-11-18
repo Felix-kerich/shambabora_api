@@ -57,6 +57,28 @@ public class FarmActivity {
     private BigDecimal laborCost;
     private BigDecimal equipmentCost;
 
+    // INPUT TRACKING - Link to specific input products used
+    @Column(name = "seed_variety_id")
+    private Long seedVarietyId; // For planting activities
+
+    @Column(name = "fertilizer_product_id")
+    private Long fertilizerProductId; // For fertilizing activities
+
+    @Column(name = "pesticide_product_id")
+    private Long pesticideProductId; // For spraying/pest control activities
+
+    // Additional input tracking fields
+    private String seedVarietyName; // Store name for quick reference
+    private String fertilizerProductName;
+    private String pesticideProductName;
+
+    // Link to a specific patch/plot (season/year)
+    @Column(name = "patch_id")
+    private Long patchId;
+
+    // Optional copy of patch name for quick display
+    private String patchName;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

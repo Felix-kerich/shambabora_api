@@ -18,6 +18,9 @@ public class FarmActivityRequest {
     @NotNull
     private LocalDate activityDate;
 
+    @NotNull
+    private Long patchId;
+
     private String description;
     private Double areaSize;
     private String units;

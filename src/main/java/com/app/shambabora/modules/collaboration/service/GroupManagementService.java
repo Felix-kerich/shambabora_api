@@ -4,12 +4,14 @@ import com.app.shambabora.common.api.ApiResponse;
 import com.app.shambabora.common.api.PageResponse;
 import com.app.shambabora.common.exception.BadRequestException;
 import com.app.shambabora.common.exception.NotFoundException;
+import com.app.shambabora.entity.User;
 import com.app.shambabora.modules.collaboration.dto.GroupDTO;
 import com.app.shambabora.modules.collaboration.dto.GroupMembershipDTO;
 import com.app.shambabora.modules.collaboration.entity.Group;
 import com.app.shambabora.modules.collaboration.entity.GroupMembership;
 import com.app.shambabora.modules.collaboration.repository.GroupMembershipRepository;
 import com.app.shambabora.modules.collaboration.repository.GroupRepository;
+import com.app.shambabora.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ public class GroupManagementService {
     
     private final GroupRepository groupRepository;
     private final GroupMembershipRepository groupMembershipRepository;
+    private final UserRepository userRepository;
     
     @Transactional
     public ApiResponse<GroupDTO> createGroup(GroupDTO groupDTO, Long ownerId) {
@@ -289,15 +292,22 @@ public class GroupManagementService {
         // Add member count and user's membership status
         long memberCount = groupMembershipRepository.countByGroupIdAndStatus(groupId, GroupMembership.MembershipStatus.ACTIVE);
         boolean isMember = groupMembershipRepository.existsByGroupIdAndUserIdAndStatus(groupId, userId, GroupMembership.MembershipStatus.ACTIVE);
+        List<Long> memberIds = groupMembershipRepository.findByGroupIdAndStatus(groupId, GroupMembership.MembershipStatus.ACTIVE)
+                .stream()
+                .map(GroupMembership::getUserId)
+                .collect(Collectors.toList());
+        String ownerName = getUserName(group.getOwnerId());
         
         GroupDTO groupDTO = GroupDTO.builder()
                 .id(group.getId())
                 .name(group.getName())
                 .description(group.getDescription())
                 .ownerId(group.getOwnerId())
-                .createdAt(group.getCreatedAt())
+                .ownerName(ownerName)
+                .memberIds(memberIds)
                 .memberCount(memberCount)
                 .isMember(isMember)
+                .createdAt(group.getCreatedAt())
                 .build();
         
         return ApiResponse.ok("Group details retrieved successfully", groupDTO);
@@ -321,24 +331,55 @@ public class GroupManagementService {
     }
     
     private GroupDTO mapToDTO(Group group) {
+        long memberCount = groupMembershipRepository.countByGroupIdAndStatus(group.getId(), GroupMembership.MembershipStatus.ACTIVE);
+        List<Long> memberIds = groupMembershipRepository.findByGroupIdAndStatus(group.getId(), GroupMembership.MembershipStatus.ACTIVE)
+                .stream()
+                .map(GroupMembership::getUserId)
+                .collect(Collectors.toList());
+        String ownerName = getUserName(group.getOwnerId());
+        
         return GroupDTO.builder()
                 .id(group.getId())
                 .name(group.getName())
                 .description(group.getDescription())
                 .ownerId(group.getOwnerId())
+                .ownerName(ownerName)
+                .memberIds(memberIds)
+                .memberCount(memberCount)
                 .createdAt(group.getCreatedAt())
                 .build();
     }
     
     private GroupMembershipDTO mapMembershipToDTO(GroupMembership membership) {
+        String userName = getUserName(membership.getUserId());
+        String groupName = getGroupName(membership.getGroupId());
+        String invitedByName = membership.getInvitedBy() != null ? getUserName(membership.getInvitedBy()) : null;
+        
         return GroupMembershipDTO.builder()
                 .id(membership.getId())
                 .groupId(membership.getGroupId())
+                .groupName(groupName)
                 .userId(membership.getUserId())
+                .userName(userName)
                 .role(membership.getRole())
                 .status(membership.getStatus())
                 .joinedAt(membership.getJoinedAt())
                 .invitedBy(membership.getInvitedBy())
+                .invitedByName(invitedByName)
                 .build();
+    }
+    
+    private String getUserName(Long userId) {
+        if (userId == null) return null;
+        return userRepository.findById(userId)
+                .map(User::getFullName)
+                .orElse("Unknown User");
+    }
+    
+    private String getGroupName(Long groupId) {
+        if (groupId == null) return null;
+        return groupRepository.findById(groupId)
+                .map(Group::getName)
+                .orElse("Unknown Group");
     }
 }

@@ -4,6 +4,8 @@ import com.app.shambabora.modules.recordskeeping.dto.FarmExpenseRequest;
 import com.app.shambabora.modules.recordskeeping.dto.FarmExpenseResponse;
 import com.app.shambabora.modules.recordskeeping.entity.FarmExpense;
 import com.app.shambabora.modules.recordskeeping.repository.FarmExpenseRepository;
+import com.app.shambabora.modules.recordskeeping.repository.MaizePatchRepository;
+import com.app.shambabora.modules.recordskeeping.entity.MaizePatch;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,11 +23,16 @@ import java.util.stream.Collectors;
 public class FarmExpenseService {
     
     private final FarmExpenseRepository farmExpenseRepository;
+    private final MaizePatchRepository maizePatchRepository;
 
     @Transactional
     public FarmExpenseResponse createExpense(Long userId, FarmExpenseRequest request) {
         // Here userId is treated as farmerProfileId since FarmerProfile entity is not available
-        FarmExpense expense = FarmExpense.builder()
+    MaizePatch patch = maizePatchRepository.findById(request.getPatchId())
+        .filter(p -> p.getFarmerProfileId().equals(userId))
+        .orElseThrow(() -> new EntityNotFoundException("Patch not found or access denied"));
+
+    FarmExpense expense = FarmExpense.builder()
                 .farmerProfileId(userId)
                 .cropType(request.getCropType())
                 .category(FarmExpense.ExpenseCategory.valueOf(request.getCategory().toUpperCase()))
@@ -36,6 +43,8 @@ public class FarmExpenseService {
                 .invoiceNumber(request.getInvoiceNumber())
                 .paymentMethod(request.getPaymentMethod())
                 .notes(request.getNotes())
+        .patchId(request.getPatchId())
+        .patchName(patch.getName())
                 .growthStage(request.getGrowthStage() != null ? 
                     FarmExpense.GrowthStage.valueOf(request.getGrowthStage().toUpperCase()) : null)
                 .farmActivityId(request.getFarmActivityId())
@@ -55,6 +64,9 @@ public class FarmExpenseService {
     @Transactional
     public FarmExpenseResponse updateExpense(Long userId, Long expenseId, FarmExpenseRequest request) {
         FarmExpense expense = getOwnedExpense(userId, expenseId);
+    MaizePatch patch = maizePatchRepository.findById(request.getPatchId())
+        .filter(p -> p.getFarmerProfileId().equals(userId))
+        .orElseThrow(() -> new EntityNotFoundException("Patch not found or access denied"));
         
         expense.setCropType(request.getCropType());
         expense.setCategory(FarmExpense.ExpenseCategory.valueOf(request.getCategory().toUpperCase()));
@@ -65,6 +77,8 @@ public class FarmExpenseService {
         expense.setInvoiceNumber(request.getInvoiceNumber());
         expense.setPaymentMethod(request.getPaymentMethod());
         expense.setNotes(request.getNotes());
+        expense.setPatchId(request.getPatchId());
+        expense.setPatchName(patch.getName());
         expense.setGrowthStage(request.getGrowthStage() != null ? 
             FarmExpense.GrowthStage.valueOf(request.getGrowthStage().toUpperCase()) : null);
         expense.setFarmActivityId(request.getFarmActivityId());
@@ -139,6 +153,8 @@ public class FarmExpenseService {
 
     private FarmExpenseResponse toResponse(FarmExpense expense) {
         FarmExpenseResponse response = new FarmExpenseResponse();
+        response.setPatchId(expense.getPatchId());
+        response.setPatchName(expense.getPatchName());
         response.setId(expense.getId());
         response.setCropType(expense.getCropType());
         response.setCategory(expense.getCategory().name());

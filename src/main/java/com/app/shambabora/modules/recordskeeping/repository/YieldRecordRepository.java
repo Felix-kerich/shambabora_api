@@ -51,4 +51,13 @@ public interface YieldRecordRepository extends JpaRepository<YieldRecord, Long> 
 
     @Query("SELECT DISTINCT yr.cropType FROM YieldRecord yr WHERE yr.farmerProfileId = :farmerProfileId")
     List<String> findDistinctCropTypesByFarmerProfileId(@Param("farmerProfileId") Long farmerProfileId);
+
+    // Find yields by patch id
+    List<YieldRecord> findByPatchId(Long patchId);
+
+    @Query("SELECT SUM(yr.yieldAmount) FROM YieldRecord yr WHERE yr.patchId = :patchId")
+    java.math.BigDecimal getTotalYieldByPatchId(@Param("patchId") Long patchId);
+
+    @Query("SELECT SUM(yr.totalRevenue) FROM YieldRecord yr WHERE yr.patchId = :patchId")
+    java.math.BigDecimal getTotalRevenueByPatchId(@Param("patchId") Long patchId);
 }

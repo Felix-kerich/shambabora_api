@@ -23,6 +23,9 @@ public class YieldRecordRequest {
     @NotBlank
     private String unit;
 
+    @NotNull
+    private Long patchId;
+
     private BigDecimal areaHarvested;
     private BigDecimal marketPrice;
     private String qualityGrade;

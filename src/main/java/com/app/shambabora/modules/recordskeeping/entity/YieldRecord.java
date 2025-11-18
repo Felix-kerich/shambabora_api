@@ -58,6 +58,43 @@ public class YieldRecord {
     @Column(name = "farm_activity_id")
     private Long farmActivityId;
 
+    // Link yield to a specific patch/plot (season/year)
+    @Column(name = "patch_id")
+    private Long patchId;
+
+    // Optional cached patch name
+    private String patchName;
+
+    // INPUT CORRELATION TRACKING
+    @Column(name = "seed_variety_id")
+    private Long seedVarietyId; // Which seed was used
+
+    @Column(name = "primary_fertilizer_id")
+    private Long primaryFertilizerId; // Main fertilizer used
+
+    @Column(name = "primary_pesticide_id")
+    private Long primaryPesticideId; // Main pesticide used
+
+    // Store names for quick reference
+    private String seedVarietyName;
+    private String fertilizerProductName;
+    private String pesticideProductName;
+
+    // Quality and inputs relationship
+    private String soilConditionAtHarvest; // For correlation analysis
+    private String weatherDuringGrowth; // Summary of weather
+    private Integer estimatedInputEffectiveness; // 1-5 how well inputs worked
+
+    // Cost analysis
+    @Column(precision = 10, scale = 2)
+    private BigDecimal totalInputCost; // Total spent on inputs
+    
+    @Column(precision = 10, scale = 2)
+    private BigDecimal costPerKgProduced; // Input cost per kg
+    
+    @Column(precision = 10, scale = 2)
+    private BigDecimal profitPerKg; // Revenue - cost per kg
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 

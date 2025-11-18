@@ -26,6 +26,9 @@ public class FarmExpenseRequest {
     @NotNull
     private LocalDate expenseDate;
 
+    @NotNull
+    private Long patchId;
+
     private String supplier;
     private String invoiceNumber;
     private String paymentMethod;

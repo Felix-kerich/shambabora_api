@@ -4,6 +4,7 @@ import com.app.shambabora.common.api.ApiResponse;
 import com.app.shambabora.common.api.PageResponse;
 import com.app.shambabora.common.exception.BadRequestException;
 import com.app.shambabora.common.exception.NotFoundException;
+import com.app.shambabora.entity.User;
 import com.app.shambabora.modules.collaboration.dto.PostCommentDTO;
 import com.app.shambabora.modules.collaboration.dto.PostDTO;
 import com.app.shambabora.modules.collaboration.entity.Post;
@@ -12,6 +13,7 @@ import com.app.shambabora.modules.collaboration.entity.PostLike;
 import com.app.shambabora.modules.collaboration.repository.PostCommentRepository;
 import com.app.shambabora.modules.collaboration.repository.PostLikeRepository;
 import com.app.shambabora.modules.collaboration.repository.PostRepository;
+import com.app.shambabora.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,6 +36,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
     private final PostCommentRepository postCommentRepository;
+    private final UserRepository userRepository;
     private final Optional<NotificationService> notificationService;
     
     @Transactional
@@ -295,7 +298,10 @@ public class PostService {
     }
     
     private String getUserName(Long userId) {
-        return "User " + userId;
+        if (userId == null) return null;
+        return userRepository.findById(userId)
+                .map(User::getFullName)
+                .orElse("Unknown User");
     }
     
     private String getGroupName(Long groupId) {

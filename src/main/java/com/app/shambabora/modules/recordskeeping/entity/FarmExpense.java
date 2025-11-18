@@ -54,6 +54,13 @@ public class FarmExpense {
     @Column(name = "farm_activity_id")
     private Long farmActivityId;
 
+    // Link expense to a specific patch/plot (season/year)
+    @Column(name = "patch_id")
+    private Long patchId;
+
+    // Optional cached patch name
+    private String patchName;
+
     // For tracking recurring expenses
     private Boolean isRecurring;
     private String recurringFrequency; // MONTHLY, WEEKLY, etc.

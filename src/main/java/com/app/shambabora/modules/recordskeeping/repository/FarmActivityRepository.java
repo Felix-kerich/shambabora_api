@@ -14,4 +14,6 @@ public interface FarmActivityRepository extends JpaRepository<FarmActivity, Long
     Page<FarmActivity> findByFarmerProfileId(Long farmerProfileId, Pageable pageable);
     Page<FarmActivity> findByFarmerProfileIdAndActivityType(Long farmerProfileId, FarmActivity.ActivityType activityType, Pageable pageable);
     List<FarmActivity> findByFarmerProfileIdAndActivityType(Long farmerProfileId, FarmActivity.ActivityType activityType, Sort sort);
+
+    List<FarmActivity> findByPatchId(Long patchId);
 }

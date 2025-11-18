@@ -4,6 +4,8 @@ import com.app.shambabora.modules.recordskeeping.dto.YieldRecordRequest;
 import com.app.shambabora.modules.recordskeeping.dto.YieldRecordResponse;
 import com.app.shambabora.modules.recordskeeping.entity.YieldRecord;
 import com.app.shambabora.modules.recordskeeping.repository.FarmActivityRepository;
+import com.app.shambabora.modules.recordskeeping.repository.MaizePatchRepository;
+import com.app.shambabora.modules.recordskeeping.entity.MaizePatch;
 import com.app.shambabora.modules.recordskeeping.repository.YieldRecordRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +24,15 @@ public class YieldRecordService {
     
     private final YieldRecordRepository yieldRecordRepository;
     private final FarmActivityRepository farmActivityRepository;
+    private final MaizePatchRepository maizePatchRepository;
 
     @Transactional
     public YieldRecordResponse createYieldRecord(Long userId, YieldRecordRequest request) {
-        Long farmActivityId = request.getFarmActivityId();
+    Long farmActivityId = request.getFarmActivityId();
+
+    MaizePatch patch = maizePatchRepository.findById(request.getPatchId())
+        .filter(p -> p.getFarmerProfileId().equals(userId))
+        .orElseThrow(() -> new EntityNotFoundException("Patch not found or access denied"));
         
         BigDecimal yieldPerUnit = null;
         if (request.getAreaHarvested() != null && request.getAreaHarvested().compareTo(BigDecimal.ZERO) > 0) {
@@ -52,6 +59,8 @@ public class YieldRecordService {
                 .buyer(request.getBuyer())
                 .notes(request.getNotes())
                 .farmActivityId(farmActivityId)
+        .patchId(request.getPatchId())
+        .patchName(patch.getName())
                 .build();
         
         YieldRecord saved = yieldRecordRepository.save(yieldRecord);
@@ -66,7 +75,9 @@ public class YieldRecordService {
     @Transactional
     public YieldRecordResponse updateYieldRecord(Long userId, Long yieldRecordId, YieldRecordRequest request) {
         YieldRecord yieldRecord = getOwnedYieldRecord(userId, yieldRecordId);
-        
+    MaizePatch patch = maizePatchRepository.findById(request.getPatchId())
+        .filter(p -> p.getFarmerProfileId().equals(userId))
+        .orElseThrow(() -> new EntityNotFoundException("Patch not found or access denied"));
         Long farmActivityId = request.getFarmActivityId();
         
         BigDecimal yieldPerUnit = null;
@@ -92,6 +103,8 @@ public class YieldRecordService {
         yieldRecord.setBuyer(request.getBuyer());
         yieldRecord.setNotes(request.getNotes());
         yieldRecord.setFarmActivityId(farmActivityId);
+    yieldRecord.setPatchId(request.getPatchId());
+    yieldRecord.setPatchName(patch.getName());
         
         YieldRecord saved = yieldRecordRepository.save(yieldRecord);
         return toResponse(saved);
@@ -166,6 +179,8 @@ public class YieldRecordService {
 
     private YieldRecordResponse toResponse(YieldRecord yieldRecord) {
         YieldRecordResponse response = new YieldRecordResponse();
+        response.setPatchId(yieldRecord.getPatchId());
+        response.setPatchName(yieldRecord.getPatchName());
         response.setId(yieldRecord.getId());
         response.setCropType(yieldRecord.getCropType());
         response.setHarvestDate(yieldRecord.getHarvestDate());

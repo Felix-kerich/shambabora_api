@@ -54,4 +54,10 @@ public interface FarmExpenseRepository extends JpaRepository<FarmExpense, Long> 
     List<String> findDistinctCropTypesByFarmerProfileId(@Param("farmerProfileId") Long farmerProfileId);
 
     Optional<FarmExpense> findTopByFarmerProfileIdOrderByExpenseDateDesc(Long farmerProfileId);
+
+    // Find expenses by patch id
+    List<FarmExpense> findByPatchId(Long patchId);
+
+    @Query("SELECT SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId")
+    java.math.BigDecimal getTotalExpensesByPatchId(@Param("patchId") Long patchId);
 }

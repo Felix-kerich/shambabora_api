@@ -4,6 +4,8 @@ import com.app.shambabora.modules.recordskeeping.dto.*;
 import com.app.shambabora.modules.recordskeeping.entity.ActivityReminder;
 import com.app.shambabora.modules.recordskeeping.entity.FarmActivity;
 import com.app.shambabora.modules.recordskeeping.repository.ActivityReminderRepository;
+import com.app.shambabora.modules.recordskeeping.repository.MaizePatchRepository;
+import com.app.shambabora.modules.recordskeeping.entity.MaizePatch;
 import com.app.shambabora.modules.recordskeeping.repository.FarmActivityRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,14 +24,22 @@ import java.util.stream.Collectors;
 public class FarmActivityService {
     private final FarmActivityRepository farmActivityRepository;
     private final ActivityReminderRepository activityReminderRepository;
+    private final MaizePatchRepository maizePatchRepository;
 
     @Transactional
     public FarmActivityResponse createActivity(Long userId, FarmActivityRequest request) {
-        FarmActivity activity = FarmActivity.builder()
+    // validate patch and get patchName
+    MaizePatch patch = maizePatchRepository.findById(request.getPatchId())
+        .filter(p -> p.getFarmerProfileId().equals(userId))
+        .orElseThrow(() -> new EntityNotFoundException("Patch not found or access denied"));
+
+    FarmActivity activity = FarmActivity.builder()
                 .farmerProfileId(userId)
                 .activityType(FarmActivity.ActivityType.valueOf(request.getActivityType().toUpperCase()))
                 .cropType(request.getCropType())
                 .activityDate(request.getActivityDate())
+        .patchId(request.getPatchId())
+        .patchName(patch.getName())
                 .description(request.getDescription())
                 .areaSize(request.getAreaSize())
                 .units(request.getUnits())
@@ -62,9 +72,15 @@ public class FarmActivityService {
     @Transactional
     public FarmActivityResponse updateActivity(Long userId, Long activityId, FarmActivityRequest request) {
         FarmActivity activity = getOwnedActivity(userId, activityId);
+    // validate patch
+    MaizePatch patch = maizePatchRepository.findById(request.getPatchId())
+        .filter(p -> p.getFarmerProfileId().equals(userId))
+        .orElseThrow(() -> new EntityNotFoundException("Patch not found or access denied"));
         activity.setActivityType(FarmActivity.ActivityType.valueOf(request.getActivityType().toUpperCase()));
         activity.setCropType(request.getCropType());
         activity.setActivityDate(request.getActivityDate());
+    activity.setPatchId(request.getPatchId());
+    activity.setPatchName(patch.getName());
         activity.setDescription(request.getDescription());
         activity.setAreaSize(request.getAreaSize());
         activity.setUnits(request.getUnits());
@@ -147,6 +163,8 @@ public class FarmActivityService {
 
     private FarmActivityResponse toResponse(FarmActivity activity) {
         FarmActivityResponse dto = new FarmActivityResponse();
+        dto.setPatchId(activity.getPatchId());
+        dto.setPatchName(activity.getPatchName());
         dto.setId(activity.getId());
         dto.setActivityType(activity.getActivityType().name());
         dto.setCropType(activity.getCropType());

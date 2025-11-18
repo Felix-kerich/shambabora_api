@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 @Data
 public class YieldRecordResponse {
     private Long id;
+    private Long patchId;
+    private String patchName;
     private String cropType;
     private LocalDate harvestDate;
     private BigDecimal yieldAmount;

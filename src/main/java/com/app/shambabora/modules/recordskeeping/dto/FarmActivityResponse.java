@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 @Data
 public class FarmActivityResponse {
     private Long id;
+    private Long patchId;
+    private String patchName;
     private String activityType;
     private String cropType;
     private LocalDate activityDate;
