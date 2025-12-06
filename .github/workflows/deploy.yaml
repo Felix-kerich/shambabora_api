@@ -3,6 +3,7 @@ name: Spring Boot CI/CD (No Docker)
 on:
   push:
     branches: ["master"]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,24 +21,40 @@ jobs:
           cache: maven
 
       - name: Build the Spring Boot App
-        run: mvn clean package -DskipTests=true
+        run: |
+          mvn clean package -DskipTests=true
+          # Verify the JAR was built correctly
+          JAR_FILE=$(ls target/*.jar)
+          echo "JAR file: $JAR_FILE"
+          ls -lh $JAR_FILE
+          file $JAR_FILE
+          unzip -t $JAR_FILE || (echo "❌ Failed to verify JAR file" && exit 1)
 
-      - name: Upload JAR Artifact (v4)
+      - name: Upload JAR Artifact
         uses: actions/upload-artifact@v4
         with:
           name: springboot-app
           path: target/*.jar
-
+          retention-days: 1
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
 
     steps:
-      - name: Download JAR Artifact (v4)
+      - name: Download JAR Artifact
         uses: actions/download-artifact@v4
         with:
           name: springboot-app
+
+      - name: Verify JAR before transfer
+        run: |
+          JAR_FILE=$(ls *.jar)
+          echo "Verifying JAR before transfer: $JAR_FILE"
+          ls -lh $JAR_FILE
+          file $JAR_FILE
+          unzip -t $JAR_FILE || (echo "❌ JAR verification failed before transfer" && exit 1)
 
       - name: Copy JAR to server
         uses: appleboy/scp-action@v0.1.7
@@ -47,20 +64,65 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "*.jar"
           target: "~/spring-app/new.jar"
+          strip_components: 1
 
-      - name: Restart Spring Boot app on server
+      - name: Deploy and restart application
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e  # Exit on error
+            echo "=== Deployment started at $(date) ==="
+            
+            # Create directory if it doesn't exist
+            mkdir -p ~/spring-app/logs
+            
+            # Stop existing application if running
             echo "Stopping old application..."
-            pkill -f "java -jar" || true
-
-            echo "Replacing JAR..."
+            pkill -f "java -jar" || echo "No running application found"
+            
+            # Verify the transferred JAR
+            echo "Verifying JAR file..."
+            if [ ! -f ~/spring-app/new.jar ]; then
+              echo "❌ Error: JAR file not found after transfer"
+              exit 1
+            fi
+            
+            file ~/spring-app/new.jar
+            unzip -t ~/spring-app/new.jar || (echo "❌ JAR verification failed on server" && exit 1)
+            
+            # Backup existing JAR if it exists
+            if [ -f ~/spring-app/app.jar ]; then
+              echo "Backing up previous version..."
+              TIMESTAMP=$(date +%Y%m%d%H%M%S)
+              mv ~/spring-app/app.jar ~/spring-app/app.jar.$TIMESTAMP
+            fi
+            
+            # Deploy new version
+            echo "Deploying new version..."
             mv ~/spring-app/new.jar ~/spring-app/app.jar
-
-            echo "Starting new version..."
-            nohup java -jar ~/spring-app/app.jar > app.log 2>&1 &
-            exit
+            chmod +x ~/spring-app/app.jar
+            
+            # Start application with proper logging
+            echo "Starting application..."
+            nohup java -jar ~/spring-app/app.jar > ~/spring-app/logs/app.log 2>&1 &
+            
+            # Wait for application to start
+            echo "Waiting for application to start..."
+            sleep 10
+            
+            # Verify application is running
+            if ! pgrep -f "java -jar" > /dev/null; then
+              echo "❌ Error: Application failed to start"
+              echo "=== Application logs ==="
+              tail -n 50 ~/spring-app/logs/app.log || echo "No log file found"
+              exit 1
+            fi
+            
+            echo "✅ Deployment completed successfully at $(date)"
+            echo "=== Application status ==="
+            ps aux | grep java
+            echo -e "\n=== Recent logs ==="
+            tail -n 20 ~/spring-app/logs/app.log || echo "No logs available yet"
