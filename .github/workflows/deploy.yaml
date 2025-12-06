@@ -81,39 +81,42 @@ jobs:
             mkdir -p ~/spring-app/logs
             touch ~/spring-app/logs/app.log
             
-            # Stop existing application with better process management
-            echo "Stopping any running Java applications..."
+            # Stop existing Spring Boot application
+            echo "Stopping Spring Boot application..."
             
-            # Find and list all Java processes
-            echo "Current Java processes:"
-            pgrep -f "java -jar" || echo "No Java processes found"
+            # Find the PID of the running Spring Boot app (excluding the current script)
+            APP_PID=$(pgrep -f "java.*app\.jar" | grep -v $$ || true)
             
-            # Try graceful shutdown first
-            echo "Attempting graceful shutdown..."
-            pkill -f "java -jar" || echo "No running Java application to stop"
-            
-            # Wait and check if processes are still running
-            for i in {1..5}; do
-              if ! pgrep -f "java -jar" > /dev/null; then
-                echo "Application stopped gracefully"
-                break
-              fi
-              echo "Waiting for application to stop (attempt $i/5)..."
-              sleep 3
-            done
-            
-            # Force kill if still running
-            if pgrep -f "java -jar" > /dev/null; then
-              echo "Application not stopping, forcing kill..."
-              pkill -9 -f "java -jar" || true
-              sleep 2
+            if [ -z "$APP_PID" ]; then
+              echo "No running Spring Boot application found"
+            else
+              echo "Found running Spring Boot application with PID: $APP_PID"
               
-              # Final check
-              if pgrep -f "java -jar" > /dev/null; then
-                echo "❌ Warning: Failed to stop all Java processes"
-                echo "Attempting to continue with deployment..."
-              else
-                echo "Successfully stopped all Java processes"
+              # Try graceful shutdown first
+              echo "Sending SIGTERM to process $APP_PID..."
+              kill -15 $APP_PID || true
+              
+              # Wait for process to terminate
+              for i in {1..5}; do
+                if ! ps -p $APP_PID > /dev/null; then
+                  echo "Application stopped gracefully"
+                  break
+                fi
+                echo "Waiting for application to stop (attempt $i/5)..."
+                sleep 3
+              done
+              
+              # Force kill if still running
+              if ps -p $APP_PID > /dev/null; then
+                echo "Application not stopping, sending SIGKILL..."
+                kill -9 $APP_PID || true
+                sleep 2
+                
+                if ps -p $APP_PID > /dev/null; then
+                  echo "❌ Warning: Failed to stop application with PID $APP_PID"
+                else
+                  echo "Successfully stopped application"
+                fi
               fi
             fi
 
@@ -155,7 +158,7 @@ jobs:
             sleep 30
             
             # Verify application is running
-            if ! pgrep -f "java -jar" > /dev/null; then
+            if ! pgrep -f "java.*app\.jar" > /dev/null; then
               echo "❌ Error: Application failed to start"
               echo "=== Application logs ==="
               tail -n 50 logs/app.log || echo "No log file found"
