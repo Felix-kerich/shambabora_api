@@ -61,7 +61,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          key: ${{ secrets.SERVER_SSK_KEY }}
           source: "*.jar"
           target: "~/spring-app/new.jar"
           strip_components: 1
@@ -71,18 +71,31 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          key: ${{ secrets.SERVER_SSK_KEY }}
           script: |
-            set -e  # Exit on error
+            set -e
             echo "=== Deployment started at $(date) ==="
             
-            # Create directory if it doesn't exist
+            # Create directories if they don't exist
             mkdir -p ~/spring-app/logs
+            touch ~/spring-app/logs/app.log
             
-            # Stop existing application if running
+            # Stop existing application gracefully
             echo "Stopping old application..."
-            pkill -f "java -jar" || echo "No running application found"
-            
+            if pgrep -f "java -jar" > /dev/null; then
+              pkill -f "java -jar" || true
+              # Wait for process to stop
+              sleep 5
+              # Force kill if still running
+              if pgrep -f "java -jar" > /dev/null; then
+                echo "Application still running, forcing stop..."
+                pkill -9 -f "java -jar" || true
+                sleep 2
+              fi
+            else
+              echo "No running application found"
+            fi
+
             # Verify the transferred JAR
             echo "Verifying JAR file..."
             if [ ! -f ~/spring-app/new.jar ]; then
@@ -107,17 +120,18 @@ jobs:
             
             # Start application with proper logging
             echo "Starting application..."
-            nohup java -jar ~/spring-app/app.jar > ~/spring-app/logs/app.log 2>&1 &
+            cd ~/spring-app
+            nohup java -jar app.jar >> logs/app.log 2>&1 &
             
             # Wait for application to start
-            echo "Waiting for application to start..."
-            sleep 10
+            echo "Waiting for application to start (30 seconds)..."
+            sleep 30
             
             # Verify application is running
             if ! pgrep -f "java -jar" > /dev/null; then
               echo "❌ Error: Application failed to start"
               echo "=== Application logs ==="
-              tail -n 50 ~/spring-app/logs/app.log || echo "No log file found"
+              tail -n 50 logs/app.log || echo "No log file found"
               exit 1
             fi
             
@@ -125,4 +139,6 @@ jobs:
             echo "=== Application status ==="
             ps aux | grep java
             echo -e "\n=== Recent logs ==="
-            tail -n 20 ~/spring-app/logs/app.log || echo "No logs available yet"
+            tail -n 20 logs/app.log || echo "No logs available yet"
+            echo -e "\n=== Application URL ==="
+            echo "http://${{ secrets.SERVER_HOST }}:7024"  # Update port if different
