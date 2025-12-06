@@ -81,20 +81,40 @@ jobs:
             mkdir -p ~/spring-app/logs
             touch ~/spring-app/logs/app.log
             
-            # Stop existing application gracefully
-            echo "Stopping old application..."
-            if pgrep -f "java -jar" > /dev/null; then
-              pkill -f "java -jar" || true
-              # Wait for process to stop
-              sleep 5
-              # Force kill if still running
-              if pgrep -f "java -jar" > /dev/null; then
-                echo "Application still running, forcing stop..."
-                pkill -9 -f "java -jar" || true
-                sleep 2
+            # Stop existing application with better process management
+            echo "Stopping any running Java applications..."
+            
+            # Find and list all Java processes
+            echo "Current Java processes:"
+            pgrep -f "java -jar" || echo "No Java processes found"
+            
+            # Try graceful shutdown first
+            echo "Attempting graceful shutdown..."
+            pkill -f "java -jar" || echo "No running Java application to stop"
+            
+            # Wait and check if processes are still running
+            for i in {1..5}; do
+              if ! pgrep -f "java -jar" > /dev/null; then
+                echo "Application stopped gracefully"
+                break
               fi
-            else
-              echo "No running application found"
+              echo "Waiting for application to stop (attempt $i/5)..."
+              sleep 3
+            done
+            
+            # Force kill if still running
+            if pgrep -f "java -jar" > /dev/null; then
+              echo "Application not stopping, forcing kill..."
+              pkill -9 -f "java -jar" || true
+              sleep 2
+              
+              # Final check
+              if pgrep -f "java -jar" > /dev/null; then
+                echo "❌ Warning: Failed to stop all Java processes"
+                echo "Attempting to continue with deployment..."
+              else
+                echo "Successfully stopped all Java processes"
+              fi
             fi
 
             # Find the JAR file
