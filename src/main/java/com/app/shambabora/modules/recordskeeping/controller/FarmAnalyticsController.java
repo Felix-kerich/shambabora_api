@@ -1,9 +1,12 @@
 package com.app.shambabora.modules.recordskeeping.controller;
 
 import com.app.shambabora.entity.User;
+import com.app.shambabora.modules.recordskeeping.dto.AiAdvisorResponseDTO;
 import com.app.shambabora.modules.recordskeeping.dto.FarmAnalyticsResponse;
 import com.app.shambabora.modules.recordskeeping.dto.FarmRecommendationResponse;
+import com.app.shambabora.modules.recordskeeping.dto.PatchRagDataDTO;
 import com.app.shambabora.modules.recordskeeping.service.FarmRecommendationService;
+import com.app.shambabora.modules.recordskeeping.service.RagIntegrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ public class FarmAnalyticsController {
 
     private final FarmRecommendationService recommendationService;
     private final PatchAnalyticsService patchAnalyticsService;
+    private final RagIntegrationService ragIntegrationService;
 
     @Operation(summary = "Generate analytics for a crop and optional period")
     @GetMapping
@@ -67,6 +71,22 @@ public class FarmAnalyticsController {
         User user = (User) authentication.getPrincipal();
         Long userId = user.getId();
         return ResponseEntity.ok(patchAnalyticsService.comparePatches(userId, patchIds));
+    }
+
+    @Operation(summary = "Get all patches data in RAG-optimized format for AI analysis")
+    @GetMapping("/rag-data")
+    public ResponseEntity<List<PatchRagDataDTO>> getRagData(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        Long userId = user.getId();
+        return ResponseEntity.ok(ragIntegrationService.getAllPatchesData(userId));
+    }
+
+    @Operation(summary = "Get AI-powered recommendations based on farmer's patch history")
+    @GetMapping("/ai-recommendations")
+    public ResponseEntity<AiAdvisorResponseDTO> getAiRecommendations(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        Long userId = user.getId();
+        return ResponseEntity.ok(ragIntegrationService.getAiRecommendations(userId));
     }
 }
 

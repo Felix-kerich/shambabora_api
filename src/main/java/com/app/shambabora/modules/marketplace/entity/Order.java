@@ -35,6 +35,11 @@ public class Order {
     @Column(nullable = false, length = 20)
     private String status; // PLACED, PAID, SHIPPED, COMPLETED, CANCELLED
 
+    private Long paymentId;
+
     @CreationTimestamp
     private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 } 

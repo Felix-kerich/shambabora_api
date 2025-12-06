@@ -72,6 +72,16 @@ public class ProductService {
         return products.map(this::toDto);
     }
 
+    public Page<ProductDTO> getSellerProducts(Long sellerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return productRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable).map(this::toDto);
+    }
+
+    public Page<ProductDTO> getSellerAvailableProducts(Long sellerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return productRepository.findBySellerIdAndAvailableIsTrueOrderByCreatedAtDesc(sellerId, pageable).map(this::toDto);
+    }
+
     private void validate(ProductDTO request) {
         if (request.getName() == null || request.getName().isBlank()) {
             throw new BadRequestException("name is required");

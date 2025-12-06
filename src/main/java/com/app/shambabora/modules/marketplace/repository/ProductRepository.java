@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByNameContainingIgnoreCaseAndAvailableIsTrue(String q, Pageable pageable);
+    Page<Product> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
+    Page<Product> findBySellerIdAndAvailableIsTrueOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
 } 

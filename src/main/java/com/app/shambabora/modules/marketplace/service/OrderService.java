@@ -56,6 +56,16 @@ public class OrderService {
             throw new BadRequestException("status is required");
         }
         order.setStatus(status);
+        
+        // If payment is successful, mark product as sold
+        if ("PAID".equals(status)) {
+            Product product = productRepository.findById(order.getProductId())
+                    .orElseThrow(() -> new NotFoundException("Product not found"));
+            product.setAvailable(false);
+            productRepository.save(product);
+            log.info("Product marked as sold: productId={}", product.getId());
+        }
+        
         Order saved = orderRepository.save(order);
         log.info("Order status updated id={} status={}", id, status);
         return toDto(saved);

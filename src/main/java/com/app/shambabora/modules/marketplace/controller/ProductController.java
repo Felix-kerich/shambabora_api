@@ -56,4 +56,68 @@ public class ProductController {
                 .build();
         return ResponseEntity.ok(ApiResponse.ok(body));
     }
+
+    /**
+     * Get all products by seller (including sold items)
+     * 
+     * Response:
+     * {
+     *   "success": true,
+     *   "data": {
+     *     "content": [...],
+     *     "page": 0,
+     *     "size": 10,
+     *     "totalElements": 25,
+     *     "totalPages": 3
+     *   }
+     * }
+     */
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<ApiResponse<PageResponse<ProductDTO>>> getSellerProducts(
+            @PathVariable Long sellerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<ProductDTO> products = productService.getSellerProducts(sellerId, page, size);
+        PageResponse<ProductDTO> body = PageResponse.<ProductDTO>builder()
+                .content(products.getContent())
+                .page(products.getNumber())
+                .size(products.getSize())
+                .totalElements(products.getTotalElements())
+                .totalPages(products.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.ok(body));
+    }
+
+    /**
+     * Get available products by seller
+     * 
+     * Response:
+     * {
+     *   "success": true,
+     *   "data": {
+     *     "content": [...],
+     *     "page": 0,
+     *     "size": 10,
+     *     "totalElements": 15,
+     *     "totalPages": 2
+     *   }
+     * }
+     */
+    @GetMapping("/seller/{sellerId}/available")
+    public ResponseEntity<ApiResponse<PageResponse<ProductDTO>>> getSellerAvailableProducts(
+            @PathVariable Long sellerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<ProductDTO> products = productService.getSellerAvailableProducts(sellerId, page, size);
+        PageResponse<ProductDTO> body = PageResponse.<ProductDTO>builder()
+                .content(products.getContent())
+                .page(products.getNumber())
+                .size(products.getSize())
+                .totalElements(products.getTotalElements())
+                .totalPages(products.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.ok(body));
+    }
 } 
