@@ -63,8 +63,9 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "*.jar"
-          target: "~/spring-app/new.jar"
-          strip_components: 1
+          target: "~/spring-app/"
+          strip_components: 0
+          rm: true
 
       - name: Deploy and restart application
         uses: appleboy/ssh-action@v1.1.0
@@ -96,27 +97,33 @@ jobs:
               echo "No running application found"
             fi
 
-            # Verify the transferred JAR
-            echo "Verifying JAR file..."
-            if [ ! -f ~/spring-app/new.jar ]; then
-              echo "❌ Error: JAR file not found after transfer"
+            # Find the JAR file
+            echo "Locating JAR file..."
+            JAR_FILE=$(find ~/spring-app -maxdepth 1 -name "*.jar" | head -1)
+            
+            if [ -z "$JAR_FILE" ]; then
+              echo "❌ Error: No JAR file found in ~/spring-app/"
+              ls -la ~/spring-app/
               exit 1
             fi
+
+            echo "Found JAR file: $JAR_FILE"
+            file "$JAR_FILE" || (echo "❌ Invalid JAR file" && exit 1)
             
-            file ~/spring-app/new.jar
-            unzip -t ~/spring-app/new.jar || (echo "❌ JAR verification failed on server" && exit 1)
-            
-            # Backup existing JAR if it exists
+            # Backup existing app.jar if it exists
             if [ -f ~/spring-app/app.jar ]; then
               echo "Backing up previous version..."
               TIMESTAMP=$(date +%Y%m%d%H%M%S)
               mv ~/spring-app/app.jar ~/spring-app/app.jar.$TIMESTAMP
             fi
-            
-            # Deploy new version
+
+            # Move the JAR to app.jar
             echo "Deploying new version..."
-            mv ~/spring-app/new.jar ~/spring-app/app.jar
+            mv "$JAR_FILE" ~/spring-app/app.jar
             chmod +x ~/spring-app/app.jar
+            
+            # Clean up any other JAR files
+            find ~/spring-app -maxdepth 1 -name "*.jar" ! -name "app.jar*" -exec rm -f {} \;
             
             # Start application with proper logging
             echo "Starting application..."
@@ -141,4 +148,4 @@ jobs:
             echo -e "\n=== Recent logs ==="
             tail -n 20 logs/app.log || echo "No logs available yet"
             echo -e "\n=== Application URL ==="
-            echo "http://${{ secrets.SERVER_HOST }}:7024"  # Update port if different
+            echo "http://${{ secrets.SERVER_HOST }}:7024"
