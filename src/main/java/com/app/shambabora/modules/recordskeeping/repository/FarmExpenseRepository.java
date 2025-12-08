@@ -60,4 +60,36 @@ public interface FarmExpenseRepository extends JpaRepository<FarmExpense, Long> 
 
     @Query("SELECT SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId")
     java.math.BigDecimal getTotalExpensesByPatchId(@Param("patchId") Long patchId);
+
+    // Get total expenses by patch id and category
+    @Query("SELECT fe.category, SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId GROUP BY fe.category")
+    List<Object[]> getExpensesByCategoryByPatchId(@Param("patchId") Long patchId);
+
+    // Get total expenses by patch id and growth stage
+    @Query("SELECT fe.growthStage, SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId GROUP BY fe.growthStage")
+    List<Object[]> getExpensesByGrowthStageByPatchId(@Param("patchId") Long patchId);
+
+    // Get expenses by patch id and category (for labour, fertiliser, pesticide, seeds)
+    @Query("SELECT SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId AND fe.category = :category")
+    BigDecimal getTotalExpensesByPatchIdAndCategory(@Param("patchId") Long patchId, @Param("category") FarmExpense.ExpenseCategory category);
+
+    // Find all patches for a farmer with their total expenses
+    @Query("SELECT fe.patchId, fe.patchName, SUM(fe.amount) as totalExpense FROM FarmExpense fe WHERE fe.farmerProfileId = :farmerProfileId GROUP BY fe.patchId, fe.patchName ORDER BY totalExpense DESC")
+    List<Object[]> getPatchExpenseSummaryForFarmer(@Param("farmerProfileId") Long farmerProfileId);
+
+    // Get total labour costs for a patch
+    @Query("SELECT SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId AND fe.category = 'LABOR'")
+    BigDecimal getTotalLabourCostByPatchId(@Param("patchId") Long patchId);
+
+    // Get total fertiliser costs for a patch
+    @Query("SELECT SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId AND fe.category = 'FERTILIZER'")
+    BigDecimal getTotalFertiliserCostByPatchId(@Param("patchId") Long patchId);
+
+    // Get total pesticide costs for a patch
+    @Query("SELECT SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId AND fe.category = 'PESTICIDES'")
+    BigDecimal getTotalPesticideCostByPatchId(@Param("patchId") Long patchId);
+
+    // Get total seed costs for a patch
+    @Query("SELECT SUM(fe.amount) FROM FarmExpense fe WHERE fe.patchId = :patchId AND fe.category = 'SEEDS'")
+    BigDecimal getTotalSeedCostByPatchId(@Param("patchId") Long patchId);
 }

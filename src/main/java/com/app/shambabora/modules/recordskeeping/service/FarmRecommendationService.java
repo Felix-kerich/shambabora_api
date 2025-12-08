@@ -31,6 +31,7 @@ import java.util.Optional;
 public class FarmRecommendationService {
 
     private final FarmAnalyticsService farmAnalyticsService;
+    private final PatchComprehensiveAnalyticsService patchAnalyticsService;
     private final YieldRecordRepository yieldRecordRepository;
     private final FarmExpenseRepository farmExpenseRepository;
     private final FarmerProfileRepository farmerProfileRepository;
@@ -42,12 +43,17 @@ public class FarmRecommendationService {
 
     public FarmAnalyticsResponse getAnalytics(Long userId, String cropType, LocalDate startDate, LocalDate endDate) {
         FarmAnalyticsRequest request = resolveRequest(userId, cropType, startDate, endDate);
-        return farmAnalyticsService.generateAnalytics(
+        FarmAnalyticsResponse analytics = farmAnalyticsService.generateAnalytics(
                 userId,
                 request.getCropType(),
                 request.getStartDate(),
                 request.getEndDate()
         );
+        
+        // Add patches analytics to the response
+        analytics.setPatchesAnalytics(patchAnalyticsService.generatePatchesAnalytics(userId));
+        
+        return analytics;
     }
 
     public FarmRecommendationResponse generateAdvice(Long userId, String cropType, LocalDate startDate, LocalDate endDate) {

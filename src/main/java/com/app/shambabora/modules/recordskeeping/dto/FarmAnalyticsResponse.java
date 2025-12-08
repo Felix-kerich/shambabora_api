@@ -34,6 +34,9 @@ public class FarmAnalyticsResponse {
     private List<ExpenseTrend> expenseTrends;
     private List<ProfitabilityAnalysis> profitabilityByPeriod;
     
+    // Patches Analytics - NEW
+    private PatchesAnalyticsSummaryDTO patchesAnalytics;
+    
     // Recommendations
     private List<String> recommendations;
     
