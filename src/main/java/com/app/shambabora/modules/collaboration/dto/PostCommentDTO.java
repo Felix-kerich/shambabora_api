@@ -21,6 +21,7 @@ public class PostCommentDTO {
     private Long parentCommentId;
     private PostComment.CommentStatus status;
     private Long moderatedBy;
+    private String moderationNotes;
     private Instant createdAt;
     private Instant updatedAt;
 }

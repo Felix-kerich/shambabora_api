@@ -196,18 +196,18 @@ public class PaymentService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Basic " + encodedAuth);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
 
-            // Important: For Daraja sandbox, send empty body
-            HttpEntity<String> request = new HttpEntity<>("", headers);
+            // For Daraja OAuth, use GET request with Basic Auth (not POST)
+            HttpEntity<Void> request = new HttpEntity<>(headers);
             
             String authUrl = mpesaConfig.getAuthUrl();
             log.info("Requesting access token from: {}", authUrl);
             log.info("Authorization header: Basic " + encodedAuth.substring(0, Math.min(20, encodedAuth.length())) + "...");
             
-            ResponseEntity<String> response = restTemplate.postForEntity(
+            // USE GET REQUEST, NOT POST
+            ResponseEntity<String> response = restTemplate.exchange(
                     authUrl,
+                    org.springframework.http.HttpMethod.GET,
                     request,
                     String.class
             );

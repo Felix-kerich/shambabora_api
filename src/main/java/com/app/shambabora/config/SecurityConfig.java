@@ -42,6 +42,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/websocket-demo.html").permitAll()
+                // M-Pesa callback endpoint must be publicly accessible (Safaricom servers call it)
+                .requestMatchers("/api/marketplace/payments/callback").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

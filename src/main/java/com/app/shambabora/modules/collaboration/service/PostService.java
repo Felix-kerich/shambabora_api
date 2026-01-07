@@ -187,8 +187,35 @@ public class PostService {
     public ApiResponse<PageResponse<PostCommentDTO>> getPostComments(Long postId, Pageable pageable) {
         log.info("Getting comments for post: {}", postId);
         
-        Page<PostComment> comments = postCommentRepository.findByPostIdAndStatusOrderByCreatedAtAsc(
-                postId, PostComment.CommentStatus.ACTIVE, pageable);
+        // Ensure default sorting by createdAt ascending if no sort is provided or if invalid sort
+        Pageable sortedPageable = pageable;
+        
+        // Validate sort parameters - only allow valid PostComment fields
+        if (pageable.getSort().isSorted()) {
+            try {
+                // Get the sort field and validate it
+                Sort.Order order = pageable.getSort().iterator().next();
+                String property = order.getProperty();
+                
+                // Only allow specific sortable fields
+                if (!List.of("createdAt", "updatedAt", "id").contains(property)) {
+                    log.warn("Invalid sort property '{}', using default sort by createdAt", property);
+                    sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), 
+                                                    Sort.by(Sort.Direction.ASC, "createdAt"));
+                }
+            } catch (Exception e) {
+                log.warn("Error processing sort parameter, using default sort: {}", e.getMessage());
+                sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), 
+                                                Sort.by(Sort.Direction.ASC, "createdAt"));
+            }
+        } else {
+            // No sort provided, use default
+            sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), 
+                                            Sort.by(Sort.Direction.ASC, "createdAt"));
+        }
+        
+        Page<PostComment> comments = postCommentRepository.findByPostIdAndStatus(
+                postId, PostComment.CommentStatus.ACTIVE, sortedPageable);
         
         List<PostCommentDTO> commentDTOs = comments.getContent().stream()
                 .map(this::mapCommentToDTO)

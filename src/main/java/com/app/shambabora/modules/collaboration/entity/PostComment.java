@@ -42,6 +42,9 @@ public class PostComment {
     @Column(name = "moderated_by")
     private Long moderatedBy;
     
+    @Column(name = "moderation_notes", length = 500)
+    private String moderationNotes;
+    
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;

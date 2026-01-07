@@ -2,6 +2,7 @@ package com.app.shambabora.modules.collaboration.controller;
 
 import com.app.shambabora.common.api.ApiResponse;
 import com.app.shambabora.common.api.PageResponse;
+import com.app.shambabora.modules.collaboration.dto.ModerationRequestDTO;
 import com.app.shambabora.modules.collaboration.dto.PostCommentDTO;
 import com.app.shambabora.modules.collaboration.dto.PostDTO;
 import com.app.shambabora.modules.collaboration.entity.Post;
@@ -13,8 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController("collaborationAdminController")
 @RequestMapping("/api/admin/collaboration")
@@ -32,25 +31,28 @@ public class AdminController {
     
     @PostMapping("/posts/{postId}/approve")
     public ResponseEntity<ApiResponse<PostDTO>> approvePost(@PathVariable Long postId,
-                                                           @RequestParam(required = false) String notes,
-                                                           @RequestHeader("X-User-Id") Long moderatorId) {
+                                                           @RequestBody(required = false) ModerationRequestDTO request,
+                                                           @RequestHeader(value = "X-User-Id", required = false) Long moderatorId) {
         log.info("Admin {} approving post {}", moderatorId, postId);
+        String notes = request != null ? request.getModerationNotes() : null;
         return ResponseEntity.ok(postService.moderatePost(postId, Post.PostStatus.APPROVED, moderatorId, notes));
     }
     
     @PostMapping("/posts/{postId}/reject")
     public ResponseEntity<ApiResponse<PostDTO>> rejectPost(@PathVariable Long postId,
-                                                          @RequestParam(required = false) String notes,
-                                                          @RequestHeader("X-User-Id") Long moderatorId) {
+                                                          @RequestBody(required = false) ModerationRequestDTO request,
+                                                          @RequestHeader(value = "X-User-Id", required = false) Long moderatorId) {
         log.info("Admin {} rejecting post {}", moderatorId, postId);
+        String notes = request != null ? request.getModerationNotes() : null;
         return ResponseEntity.ok(postService.moderatePost(postId, Post.PostStatus.REJECTED, moderatorId, notes));
     }
     
     @PostMapping("/posts/{postId}/hide")
     public ResponseEntity<ApiResponse<PostDTO>> hidePost(@PathVariable Long postId,
-                                                        @RequestParam(required = false) String notes,
-                                                        @RequestHeader("X-User-Id") Long moderatorId) {
+                                                        @RequestBody(required = false) ModerationRequestDTO request,
+                                                        @RequestHeader(value = "X-User-Id", required = false) Long moderatorId) {
         log.info("Admin {} hiding post {}", moderatorId, postId);
+        String notes = request != null ? request.getModerationNotes() : null;
         return ResponseEntity.ok(postService.moderatePost(postId, Post.PostStatus.HIDDEN, moderatorId, notes));
     }
     
@@ -74,25 +76,28 @@ public class AdminController {
     
     @PostMapping("/comments/{commentId}/approve")
     public ResponseEntity<ApiResponse<PostCommentDTO>> approveComment(@PathVariable Long commentId,
-                                                                     @RequestParam(required = false) String notes,
-                                                                     @RequestHeader("X-User-Id") Long moderatorId) {
+                                                                     @RequestBody(required = false) ModerationRequestDTO request,
+                                                                     @RequestHeader(value = "X-User-Id", required = false) Long moderatorId) {
         log.info("Admin {} approving comment {}", moderatorId, commentId);
+        String notes = request != null ? request.getModerationNotes() : null;
         return ResponseEntity.ok(postService.moderateComment(commentId, PostComment.CommentStatus.APPROVED, moderatorId, notes));
     }
     
     @PostMapping("/comments/{commentId}/reject")
     public ResponseEntity<ApiResponse<PostCommentDTO>> rejectComment(@PathVariable Long commentId,
-                                                                    @RequestParam(required = false) String notes,
-                                                                    @RequestHeader("X-User-Id") Long moderatorId) {
+                                                                    @RequestBody(required = false) ModerationRequestDTO request,
+                                                                    @RequestHeader(value = "X-User-Id", required = false) Long moderatorId) {
         log.info("Admin {} rejecting comment {}", moderatorId, commentId);
+        String notes = request != null ? request.getModerationNotes() : null;
         return ResponseEntity.ok(postService.moderateComment(commentId, PostComment.CommentStatus.REJECTED, moderatorId, notes));
     }
     
     @PostMapping("/comments/{commentId}/hide")
     public ResponseEntity<ApiResponse<PostCommentDTO>> hideComment(@PathVariable Long commentId,
-                                                                  @RequestParam(required = false) String notes,
-                                                                  @RequestHeader("X-User-Id") Long moderatorId) {
+                                                                  @RequestBody(required = false) ModerationRequestDTO request,
+                                                                  @RequestHeader(value = "X-User-Id", required = false) Long moderatorId) {
         log.info("Admin {} hiding comment {}", moderatorId, commentId);
+        String notes = request != null ? request.getModerationNotes() : null;
         return ResponseEntity.ok(postService.moderateComment(commentId, PostComment.CommentStatus.HIDDEN, moderatorId, notes));
     }
     

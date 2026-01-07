@@ -1,6 +1,10 @@
 package com.app.shambabora.modules.recordskeeping.service;
 
-import com.app.shambabora.modules.recordskeeping.dto.*;
+import com.app.shambabora.modules.recordskeeping.dto.FarmActivityResponse;
+import com.app.shambabora.modules.recordskeeping.dto.FarmExpenseResponse;
+import com.app.shambabora.modules.recordskeeping.dto.MaizePatchDTO;
+import com.app.shambabora.modules.recordskeeping.dto.PatchRagDataDTO;
+import com.app.shambabora.modules.recordskeeping.dto.YieldRecordResponse;
 import com.app.shambabora.modules.recordskeeping.entity.FarmActivity;
 import com.app.shambabora.modules.recordskeeping.entity.FarmExpense;
 import com.app.shambabora.modules.recordskeeping.entity.MaizePatch;
@@ -13,8 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,137 +72,6 @@ public class MaizePatchService {
         dto.setExpenses(expenses.stream().map(this::mapExpense).collect(Collectors.toList()));
 
         return dto;
-    }
-
-    /**
-     * Get all patches with their related records in RAG-optimized format for AI analysis.
-     * This comprehensive data is sent to the RAG service for personalized farmer recommendations.
-     */
-    public List<PatchRagDataDTO> getAllPatchesForRag(Long farmerProfileId) {
-        List<MaizePatch> patches = maizePatchRepository.findByFarmerProfileIdOrderByYearDesc(farmerProfileId);
-        return patches.stream()
-                .map(patch -> buildRagDataForPatch(patch))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Build comprehensive RAG data for a single patch including metrics and analytics.
-     */
-    public PatchRagDataDTO buildRagDataForPatch(MaizePatch patch) {
-        List<FarmActivity> activities = farmActivityRepository.findByPatchId(patch.getId());
-        List<YieldRecord> yields = yieldRecordRepository.findByPatchId(patch.getId());
-        List<FarmExpense> expenses = farmExpenseRepository.findByPatchId(patch.getId());
-
-        // Compute aggregates
-        BigDecimal totalExpenses = expenses.isEmpty() ? BigDecimal.ZERO
-                : expenses.stream()
-                .map(FarmExpense::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalYield = yields.isEmpty() ? BigDecimal.ZERO
-                : yields.stream()
-                .map(YieldRecord::getYieldAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalRevenue = yields.isEmpty() ? BigDecimal.ZERO
-                : yields.stream()
-                .map(yr -> {
-                    BigDecimal revenue = yr.getYieldAmount() != null && yr.getMarketPrice() != null
-                            ? yr.getYieldAmount().multiply(yr.getMarketPrice())
-                            : BigDecimal.ZERO;
-                    return revenue;
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal costPerKg = BigDecimal.ZERO;
-        BigDecimal profit = totalRevenue.subtract(totalExpenses);
-        BigDecimal profitPerKg = BigDecimal.ZERO;
-        BigDecimal roiPercentage = BigDecimal.ZERO;
-
-        if (totalYield.compareTo(BigDecimal.ZERO) > 0) {
-            costPerKg = totalExpenses.divide(totalYield, 4, BigDecimal.ROUND_HALF_UP);
-            profitPerKg = profit.divide(totalYield, 4, BigDecimal.ROUND_HALF_UP);
-        }
-
-        if (totalExpenses.compareTo(BigDecimal.ZERO) > 0) {
-            roiPercentage = profit.divide(totalExpenses, 4, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal("100"));
-        }
-
-        // Build DTO
-        return PatchRagDataDTO.builder()
-                .patchId(patch.getId())
-                .farmerProfileId(patch.getFarmerProfileId())
-                .year(patch.getYear())
-                .season(patch.getSeason())
-                .patchName(patch.getName())
-                .cropType(patch.getCropType())
-                .area(patch.getArea())
-                .areaUnit(patch.getAreaUnit())
-                .plantingDate(patch.getPlantingDate())
-                .expectedHarvestDate(patch.getExpectedHarvestDate())
-                .actualHarvestDate(patch.getActualHarvestDate())
-                .location(patch.getLocation())
-                .notes(patch.getNotes())
-                .totalExpenses(totalExpenses)
-                .totalYield(totalYield)
-                .totalRevenue(totalRevenue)
-                .costPerKg(costPerKg)
-                .profit(profit)
-                .profitPerKg(profitPerKg)
-                .roiPercentage(roiPercentage)
-                .activities(activities.stream().map(this::mapActivityForRag).collect(Collectors.toList()))
-                .expenses(expenses.stream().map(this::mapExpenseForRag).collect(Collectors.toList()))
-                .yields(yields.stream().map(this::mapYieldForRag).collect(Collectors.toList()))
-                .build();
-    }
-
-    private PatchRagDataDTO.ActivityDetailDTO mapActivityForRag(FarmActivity a) {
-        return PatchRagDataDTO.ActivityDetailDTO.builder()
-                .id(a.getId())
-                .activityType(a.getActivityType() != null ? a.getActivityType().name() : null)
-                .activityDate(a.getActivityDate())
-                .description(a.getDescription())
-                .areaSize(a.getAreaSize())
-                .units(a.getUnits())
-                .productUsed(a.getProductUsed())
-                .applicationRate(a.getApplicationRate())
-                .weatherConditions(a.getWeatherConditions())
-                .soilConditions(a.getSoilConditions())
-                .laborHours(a.getLaborHours())
-                .equipmentUsed(a.getEquipmentUsed())
-                .laborCost(a.getLaborCost())
-                .equipmentCost(a.getEquipmentCost())
-                .notes(a.getNotes())
-                .build();
-    }
-
-    private PatchRagDataDTO.ExpenseDetailDTO mapExpenseForRag(FarmExpense e) {
-        return PatchRagDataDTO.ExpenseDetailDTO.builder()
-                .id(e.getId())
-                .category(e.getCategory() != null ? e.getCategory().name() : null)
-                .description(e.getDescription())
-                .amount(e.getAmount())
-                .expenseDate(e.getExpenseDate())
-                .supplier(e.getSupplier())
-                .growthStage(e.getGrowthStage() != null ? e.getGrowthStage().name() : null)
-                .notes(e.getNotes())
-                .build();
-    }
-
-    private PatchRagDataDTO.YieldDetailDTO mapYieldForRag(YieldRecord y) {
-        return PatchRagDataDTO.YieldDetailDTO.builder()
-                .id(y.getId())
-                .harvestDate(y.getHarvestDate())
-                .yieldAmount(y.getYieldAmount())
-                .unit(y.getUnit())
-                .areaHarvested(y.getAreaHarvested())
-                .yieldPerUnit(y.getYieldPerUnit())
-                .marketPrice(y.getMarketPrice())
-                .totalRevenue(y.getTotalRevenue())
-                .qualityGrade(y.getQualityGrade())
-                .buyer(y.getBuyer())
-                .notes(y.getNotes())
-                .build();
     }
 
     private MaizePatchDTO mapToDTO(MaizePatch p) {
@@ -314,5 +188,129 @@ public class MaizePatchService {
         r.setCreatedAt(e.getCreatedAt());
         r.setUpdatedAt(e.getUpdatedAt());
         return r;
+    }
+
+    /**
+     * Get all patches for a farmer in RAG-optimized format with comprehensive data and computed metrics.
+     * This method is used by the RAG integration service to send patch data to the AI service.
+     */
+    public List<PatchRagDataDTO> getAllPatchesForRag(Long farmerProfileId) {
+        List<MaizePatch> patches = maizePatchRepository.findByFarmerProfileIdOrderByYearDesc(farmerProfileId);
+        
+        return patches.stream().map(patch -> {
+            // Get related records
+            List<FarmActivity> activities = farmActivityRepository.findByPatchId(patch.getId());
+            List<YieldRecord> yields = yieldRecordRepository.findByPatchId(patch.getId());
+            List<FarmExpense> expenses = farmExpenseRepository.findByPatchId(patch.getId());
+
+            // Calculate metrics
+            BigDecimal totalExpenses = expenses.stream()
+                    .map(FarmExpense::getAmount)
+                    .filter(amount -> amount != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal totalYield = yields.stream()
+                    .map(YieldRecord::getYieldAmount)
+                    .filter(amount -> amount != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal totalRevenue = yields.stream()
+                    .map(YieldRecord::getTotalRevenue)
+                    .filter(revenue -> revenue != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // Calculate derived metrics
+            BigDecimal costPerKg = BigDecimal.ZERO;
+            BigDecimal profitPerKg = BigDecimal.ZERO;
+            BigDecimal profit = totalRevenue.subtract(totalExpenses);
+            BigDecimal roiPercentage = BigDecimal.ZERO;
+
+            if (totalYield.compareTo(BigDecimal.ZERO) > 0) {
+                costPerKg = totalExpenses.divide(totalYield, 2, RoundingMode.HALF_UP);
+                profitPerKg = profit.divide(totalYield, 2, RoundingMode.HALF_UP);
+            }
+
+            if (totalExpenses.compareTo(BigDecimal.ZERO) > 0) {
+                roiPercentage = profit.divide(totalExpenses, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+            }
+
+            // Map activities to RAG format
+            List<PatchRagDataDTO.ActivityDetailDTO> activityDetails = activities.stream()
+                    .map(activity -> PatchRagDataDTO.ActivityDetailDTO.builder()
+                            .id(activity.getId())
+                            .activityType(activity.getActivityType() != null ? activity.getActivityType().name() : null)
+                            .activityDate(activity.getActivityDate())
+                            .description(activity.getDescription())
+                            .areaSize(activity.getAreaSize())
+                            .units(activity.getUnits())
+                            .productUsed(activity.getProductUsed())
+                            .applicationRate(activity.getApplicationRate())
+                            .weatherConditions(activity.getWeatherConditions())
+                            .soilConditions(activity.getSoilConditions())
+                            .laborHours(activity.getLaborHours())
+                            .equipmentUsed(activity.getEquipmentUsed())
+                            .laborCost(activity.getLaborCost())
+                            .equipmentCost(activity.getEquipmentCost())
+                            .notes(activity.getNotes())
+                            .build())
+                    .collect(Collectors.toList());
+
+            // Map expenses to RAG format
+            List<PatchRagDataDTO.ExpenseDetailDTO> expenseDetails = expenses.stream()
+                    .map(expense -> PatchRagDataDTO.ExpenseDetailDTO.builder()
+                            .id(expense.getId())
+                            .category(expense.getCategory() != null ? expense.getCategory().name() : null)
+                            .description(expense.getDescription())
+                            .amount(expense.getAmount())
+                            .expenseDate(expense.getExpenseDate())
+                            .supplier(expense.getSupplier())
+                            .growthStage(expense.getGrowthStage() != null ? expense.getGrowthStage().name() : null)
+                            .notes(expense.getNotes())
+                            .build())
+                    .collect(Collectors.toList());
+
+            // Map yields to RAG format
+            List<PatchRagDataDTO.YieldDetailDTO> yieldDetails = yields.stream()
+                    .map(yield -> PatchRagDataDTO.YieldDetailDTO.builder()
+                            .id(yield.getId())
+                            .harvestDate(yield.getHarvestDate())
+                            .yieldAmount(yield.getYieldAmount())
+                            .unit(yield.getUnit())
+                            .areaHarvested(yield.getAreaHarvested())
+                            .yieldPerUnit(yield.getYieldPerUnit())
+                            .marketPrice(yield.getMarketPrice())
+                            .totalRevenue(yield.getTotalRevenue())
+                            .qualityGrade(yield.getQualityGrade())
+                            .build())
+                    .collect(Collectors.toList());
+
+            // Build the complete PatchRagDataDTO
+            return PatchRagDataDTO.builder()
+                    .patchId(patch.getId())
+                    .farmerProfileId(patch.getFarmerProfileId())
+                    .year(patch.getYear())
+                    .season(patch.getSeason())
+                    .patchName(patch.getName())
+                    .cropType(patch.getCropType())
+                    .area(patch.getArea())
+                    .areaUnit(patch.getAreaUnit())
+                    .plantingDate(patch.getPlantingDate())
+                    .expectedHarvestDate(patch.getExpectedHarvestDate())
+                    .actualHarvestDate(patch.getActualHarvestDate())
+                    .location(patch.getLocation())
+                    .notes(patch.getNotes())
+                    .totalExpenses(totalExpenses)
+                    .totalYield(totalYield)
+                    .totalRevenue(totalRevenue)
+                    .costPerKg(costPerKg)
+                    .profit(profit)
+                    .profitPerKg(profitPerKg)
+                    .roiPercentage(roiPercentage)
+                    .activities(activityDetails)
+                    .expenses(expenseDetails)
+                    .yields(yieldDetails)
+                    .build();
+        }).collect(Collectors.toList());
     }
 }

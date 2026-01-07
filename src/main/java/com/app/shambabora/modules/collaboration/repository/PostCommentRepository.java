@@ -13,7 +13,8 @@ import java.util.List;
 @Repository
 public interface PostCommentRepository extends JpaRepository<PostComment, Long> {
     
-    Page<PostComment> findByPostIdAndStatusOrderByCreatedAtAsc(Long postId, PostComment.CommentStatus status, Pageable pageable);
+    // Changed to remove hardcoded sorting - now uses Pageable's sort parameter
+    Page<PostComment> findByPostIdAndStatus(Long postId, PostComment.CommentStatus status, Pageable pageable);
     
     List<PostComment> findByPostIdAndParentCommentIdIsNullAndStatusOrderByCreatedAtAsc(Long postId, PostComment.CommentStatus status);
     
