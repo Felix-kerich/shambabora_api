@@ -67,9 +67,13 @@ public class PaymentService {
             // Get access token
             String accessToken = getAccessToken();
 
+            // Format amount as whole number (M-Pesa doesn't accept decimals)
+            // Convert 250.00 to "250", 100.50 to "101" (round up)
+            String amount = String.valueOf(order.getTotalPrice().intValue());
+
             // Create STK Push request
             MpesaStkPushRequest stkRequest = buildStkPushRequest(
-                    order.getTotalPrice().toPlainString(),
+                    amount,
                     phoneNumber,
                     request.getAccountReference()
             );
