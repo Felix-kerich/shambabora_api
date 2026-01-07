@@ -172,11 +172,11 @@ public class PostService {
                 .authorId(authorId)
                 .content(commentDTO.getContent())
                 .parentCommentId(commentDTO.getParentCommentId())
-                .status(PostComment.CommentStatus.PENDING_MODERATION)
+                .status(PostComment.CommentStatus.ACTIVE)  // Changed from PENDING_MODERATION to ACTIVE
                 .build();
         
         PostComment savedComment = postCommentRepository.save(comment);
-        log.info("Comment created with ID: {}", savedComment.getId());
+        log.info("Comment created with ID: {} and status: {}", savedComment.getId(), savedComment.getStatus());
         
         // Notify about comment (if websockets enabled)
         notificationService.ifPresent(ns -> ns.notifyPostComment(commentDTO.getPostId(), authorId, commentDTO.getContent()));
