@@ -31,6 +31,9 @@ public class Product {
     private String unit;
 
     @Column(nullable = false)
+    private int quantity;
+
+    @Column(nullable = false)
     private boolean available = true;
 
     @Column(nullable = false)

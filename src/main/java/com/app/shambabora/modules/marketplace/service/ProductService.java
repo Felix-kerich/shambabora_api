@@ -28,6 +28,7 @@ public class ProductService {
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setUnit(request.getUnit());
+        product.setQuantity(request.getQuantity());
         product.setAvailable(true);
         product.setSellerId(request.getSellerId());
         Product saved = productRepository.save(product);
@@ -43,6 +44,7 @@ public class ProductService {
         if (request.getDescription() != null) product.setDescription(request.getDescription());
         if (request.getPrice() != null) product.setPrice(request.getPrice());
         if (request.getUnit() != null) product.setUnit(request.getUnit());
+        if (request.getQuantity() > 0) product.setQuantity(request.getQuantity());
         if (request.getSellerId() != null) product.setSellerId(request.getSellerId());
         Product saved = productRepository.save(product);
         log.info("Product updated id={}", saved.getId());
@@ -92,6 +94,9 @@ public class ProductService {
         if (request.getUnit() == null || request.getUnit().isBlank()) {
             throw new BadRequestException("unit is required");
         }
+        if (request.getQuantity() <= 0) {
+            throw new BadRequestException("quantity must be greater than 0");
+        }
         if (request.getSellerId() == null) {
             throw new BadRequestException("sellerId is required");
         }
@@ -104,6 +109,7 @@ public class ProductService {
         dto.setDescription(entity.getDescription());
         dto.setPrice(entity.getPrice());
         dto.setUnit(entity.getUnit());
+        dto.setQuantity(entity.getQuantity());
         dto.setAvailable(entity.isAvailable());
         dto.setSellerId(entity.getSellerId());
         dto.setCreatedAt(entity.getCreatedAt());
