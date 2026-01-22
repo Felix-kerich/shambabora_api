@@ -69,8 +69,8 @@ public class GroupManagementService {
     public ApiResponse<GroupMembershipDTO> addMember(Long groupId, Long userId, Long inviterId) {
         log.info("Adding user {} to group {} by {}", userId, groupId, inviterId);
         
-        // Check if inviter has permission
-        if (!hasAdminOrModeratorRole(groupId, inviterId)) {
+        // Check if inviter has permission (system admin/EO or group admin/moderator)
+        if (!hasAdminOrModeratorRole(groupId, inviterId) && !hasSystemAdminOrEORole(inviterId)) {
             throw new BadRequestException("Insufficient permissions to add members");
         }
         
@@ -97,8 +97,8 @@ public class GroupManagementService {
     public ApiResponse<GroupMembershipDTO> removeMember(Long groupId, Long userId, Long removerId) {
         log.info("Removing user {} from group {} by {}", userId, groupId, removerId);
         
-        // Check if remover has permission
-        if (!hasAdminOrModeratorRole(groupId, removerId)) {
+        // Check if remover has permission (system admin/EO or group admin/moderator)
+        if (!hasAdminOrModeratorRole(groupId, removerId) && !hasSystemAdminOrEORole(removerId)) {
             throw new BadRequestException("Insufficient permissions to remove members");
         }
         
@@ -135,8 +135,8 @@ public class GroupManagementService {
     public ApiResponse<GroupMembershipDTO> suspendMember(Long groupId, Long userId, Long suspenderId) {
         log.info("Suspending user {} from group {} by {}", userId, groupId, suspenderId);
         
-        // Check if suspender has permission
-        if (!hasAdminOrModeratorRole(groupId, suspenderId)) {
+        // Check if suspender has permission (system admin/EO or group admin/moderator)
+        if (!hasAdminOrModeratorRole(groupId, suspenderId) && !hasSystemAdminOrEORole(suspenderId)) {
             throw new BadRequestException("Insufficient permissions to suspend members");
         }
         
@@ -326,6 +326,13 @@ public class GroupManagementService {
                 .orElse(false);
     }
     
+    private boolean hasSystemAdminOrEORole(Long userId) {
+        return userRepository.findById(userId)
+                .map(user -> user.getRoles().stream()
+                        .anyMatch(role -> role.name().equals("ADMIN") || role.name().equals("EXTENSION_OFFICER")))
+                .orElse(false);
+    }
+    
     private boolean isGroupMember(Long groupId, Long userId) {
         return groupMembershipRepository.existsByGroupIdAndUserIdAndStatus(groupId, userId, GroupMembership.MembershipStatus.ACTIVE);
     }
@@ -381,5 +388,146 @@ public class GroupManagementService {
         return groupRepository.findById(groupId)
                 .map(Group::getName)
                 .orElse("Unknown Group");
+    }
+    
+    // ========== ADMIN-SPECIFIC METHODS ==========
+    
+    /**
+     * Admin/EO creates a group without the 3-group limit
+     */
+    @Transactional
+    public ApiResponse<GroupDTO> createGroupAsAdmin(GroupDTO groupDTO, Long adminId) {
+        log.info("Admin/EO {} creating group: {}", adminId, groupDTO.getName());
+        
+        Group group = Group.builder()
+                .name(groupDTO.getName())
+                .description(groupDTO.getDescription())
+                .ownerId(adminId)
+                .build();
+        
+        Group savedGroup = groupRepository.save(group);
+        
+        // Add creator as admin
+        GroupMembership ownerMembership = GroupMembership.builder()
+                .groupId(savedGroup.getId())
+                .userId(adminId)
+                .role(GroupMembership.MembershipRole.ADMIN)
+                .status(GroupMembership.MembershipStatus.ACTIVE)
+                .build();
+        
+        groupMembershipRepository.save(ownerMembership);
+        log.info("Admin created group with ID: {}", savedGroup.getId());
+        
+        return ApiResponse.ok("Group created successfully by admin", mapToDTO(savedGroup));
+    }
+    
+    /**
+     * Get all groups for admin view
+     */
+    public ApiResponse<PageResponse<GroupDTO>> getAllGroupsAdmin(String search, String status, Pageable pageable) {
+        log.info("Admin fetching all groups");
+        
+        Page<Group> groupPage;
+        
+        if (search != null && !search.trim().isEmpty()) {
+            groupPage = groupRepository.findByNameContainingIgnoreCase(search, pageable);
+        } else {
+            groupPage = groupRepository.findAll(pageable);
+        }
+        
+        List<GroupDTO> groupDTOs = groupPage.getContent().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+        
+        PageResponse<GroupDTO> pageResponse = PageResponse.<GroupDTO>builder()
+                .content(groupDTOs)
+                .page(groupPage.getNumber())
+                .size(groupPage.getSize())
+                .totalElements(groupPage.getTotalElements())
+                .totalPages(groupPage.getTotalPages())
+                .build();
+        
+        return ApiResponse.ok("Groups retrieved successfully", pageResponse);
+    }
+    
+    /**
+     * Update group details (admin only)
+     */
+    @Transactional
+    public ApiResponse<GroupDTO> updateGroupAsAdmin(Long groupId, GroupDTO groupDTO, Long adminId) {
+        log.info("Admin {} updating group {}", adminId, groupId);
+        
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found"));
+        
+        group.setName(groupDTO.getName());
+        group.setDescription(groupDTO.getDescription());
+        
+        Group updatedGroup = groupRepository.save(group);
+        log.info("Admin updated group {}", groupId);
+        
+        return ApiResponse.ok("Group updated successfully", mapToDTO(updatedGroup));
+    }
+    
+    /**
+     * Freeze or unfreeze a group
+     */
+    @Transactional
+    public ApiResponse<GroupDTO> freezeGroup(Long groupId, boolean freeze, String reason, Long adminId) {
+        log.info("Admin {} {} group {}", adminId, freeze ? "freezing" : "unfreezing", groupId);
+        
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found"));
+        
+        // You can add a status field to Group entity if needed
+        // For now, we'll update the description to indicate frozen status
+        if (freeze) {
+            group.setDescription(group.getDescription() + " [FROZEN: " + reason + "]");
+        }
+        
+        Group updatedGroup = groupRepository.save(group);
+        log.info("Group {} {}", groupId, freeze ? "frozen" : "unfrozen");
+        
+        return ApiResponse.ok("Group " + (freeze ? "frozen" : "unfrozen") + " successfully", mapToDTO(updatedGroup));
+    }
+    
+    /**
+     * Force delete a group (admin bypass)
+     */
+    @Transactional
+    public ApiResponse<String> forceDeleteGroup(Long groupId, Long adminId) {
+        log.info("Admin {} force deleting group {}", adminId, groupId);
+        
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found"));
+        
+        // Delete all memberships first
+        groupMembershipRepository.deleteAllByGroupId(groupId);
+        
+        // Delete the group
+        groupRepository.delete(group);
+        log.info("Admin force deleted group {}", groupId);
+        
+        return ApiResponse.ok("Group force deleted successfully", "Group has been permanently deleted");
+    }
+    
+    /**
+     * Get group statistics for admin dashboard
+     */
+    public ApiResponse<com.app.shambabora.modules.collaboration.controller.AdminGroupController.GroupStatsDTO> getGroupStatistics() {
+        log.info("Fetching group statistics");
+        
+        long totalGroups = groupRepository.count();
+        long activeGroups = totalGroups; // You can add logic to filter by status
+        long frozenGroups = 0; // Implement based on your Group entity
+        long totalMembers = groupMembershipRepository.countByStatus(GroupMembership.MembershipStatus.ACTIVE);
+        long totalPosts = 0; // You can count posts if you have that relationship
+        
+        com.app.shambabora.modules.collaboration.controller.AdminGroupController.GroupStatsDTO stats = 
+            new com.app.shambabora.modules.collaboration.controller.AdminGroupController.GroupStatsDTO(
+                totalGroups, activeGroups, frozenGroups, totalMembers, totalPosts
+            );
+        
+        return ApiResponse.ok("Group statistics retrieved successfully", stats);
     }
 }

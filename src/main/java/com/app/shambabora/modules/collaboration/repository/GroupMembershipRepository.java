@@ -37,4 +37,8 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     long countByUserIdAndStatusAndRole(Long userId, GroupMembership.MembershipStatus status, GroupMembership.MembershipRole role);
     
     long countByGroupIdAndStatus(Long groupId, GroupMembership.MembershipStatus status);
+    
+    long countByStatus(GroupMembership.MembershipStatus status);
+    
+    void deleteAllByGroupId(Long groupId);
 }

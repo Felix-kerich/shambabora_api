@@ -120,4 +120,10 @@ public class ProductController {
                 .build();
         return ResponseEntity.ok(ApiResponse.ok(body));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        productService.delete(id);
+        return ResponseEntity.ok(ApiResponse.ok("Product deleted successfully", null));
+    }
 } 

@@ -84,6 +84,14 @@ public class ProductService {
         return productRepository.findBySellerIdAndAvailableIsTrueOrderByCreatedAtDesc(sellerId, pageable).map(this::toDto);
     }
 
+    @Transactional
+    public void delete(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Product not found"));
+        productRepository.delete(product);
+        log.info("Product deleted id={}", id);
+    }
+
     private void validate(ProductDTO request) {
         if (request.getName() == null || request.getName().isBlank()) {
             throw new BadRequestException("name is required");
