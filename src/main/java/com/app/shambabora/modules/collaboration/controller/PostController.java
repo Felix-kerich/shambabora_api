@@ -44,6 +44,16 @@ public class PostController {
         return ResponseEntity.ok(postService.getGroupPosts(groupId, userId, pageable));
     }
     
+    @PostMapping("/group/{groupId}")
+    public ResponseEntity<ApiResponse<PostDTO>> createPostForGroup(@PathVariable Long groupId,
+                                                                   @Valid @RequestBody PostDTO postDTO,
+                                                                   @RequestHeader("X-User-Id") Long userId) {
+        log.info("Creating post for group: {} by user: {}", groupId, userId);
+        // Set the groupId from the path variable to ensure it matches
+        postDTO.setGroupId(groupId);
+        return ResponseEntity.ok(postService.createPost(postDTO, userId));
+    }
+    
     @PostMapping("/{postId}/like")
     public ResponseEntity<ApiResponse<PostDTO>> likePost(@PathVariable Long postId,
                                                         @RequestHeader("X-User-Id") Long userId) {
