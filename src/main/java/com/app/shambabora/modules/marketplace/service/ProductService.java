@@ -31,6 +31,7 @@ public class ProductService {
         product.setQuantity(request.getQuantity());
         product.setAvailable(true);
         product.setSellerId(request.getSellerId());
+        product.setImageUrl(request.getImageUrl());
         Product saved = productRepository.save(product);
         log.info("Product created id={}", saved.getId());
         return toDto(saved);
@@ -46,6 +47,7 @@ public class ProductService {
         if (request.getUnit() != null) product.setUnit(request.getUnit());
         if (request.getQuantity() > 0) product.setQuantity(request.getQuantity());
         if (request.getSellerId() != null) product.setSellerId(request.getSellerId());
+        if (request.getImageUrl() != null) product.setImageUrl(request.getImageUrl());
         Product saved = productRepository.save(product);
         log.info("Product updated id={}", saved.getId());
         return toDto(saved);
@@ -120,6 +122,7 @@ public class ProductService {
         dto.setQuantity(entity.getQuantity());
         dto.setAvailable(entity.isAvailable());
         dto.setSellerId(entity.getSellerId());
+        dto.setImageUrl(entity.getImageUrl());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         return dto;

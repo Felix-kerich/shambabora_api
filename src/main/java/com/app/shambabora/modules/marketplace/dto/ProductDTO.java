@@ -15,6 +15,7 @@ public class ProductDTO {
     private int quantity;
     private boolean available;
     private Long sellerId;
+    private String imageUrl;
     private Instant createdAt;
     private Instant updatedAt;
 } 

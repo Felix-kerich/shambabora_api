@@ -39,6 +39,9 @@ public class Product {
     @Column(nullable = false)
     private Long sellerId;
 
+    @Column(length = 500)
+    private String imageUrl;
+
     @CreationTimestamp
     private Instant createdAt;
 
